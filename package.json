@@ -1,0 +1,19 @@
+{
+  "name": "paintify",
+  "version": "0.0.1",
+  "description": "let's painting",
+  "main": "paintify.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joeyguo/paintify.git"
+  },
+  "author": "joeyguo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/joeyguo/paintify/issues"
+  },
+  "homepage": "https://github.com/joeyguo/paintify#readme"
+}
