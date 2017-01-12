@@ -18,6 +18,8 @@
         direction,
         dragging = false;
 
+    var only = false;
+
     function paintRect(startX, startY) {
         var rect = document.createElement("div");
         rect.id = "activePaint";
@@ -87,6 +89,8 @@
     }
 
     var Paintify = function (drawingboard, option) {
+        only = option.only;
+
         var down = function(e) {
             // 点击时初始坐标
             startX = e.pageX;
@@ -112,6 +116,10 @@
                 diffY = startY - e.target.offsetTop;
             }
             else {
+                if (only) {
+                    var rectExisted = drawingboard.querySelector(".paint-rect");
+                    rectExisted &&  rectExisted.parentNode.removeChild(rectExisted);
+                }
                 // 在页面创建 rect
                 var rect = paintRect(startX, startY);
                 drawingboard.appendChild(rect);
