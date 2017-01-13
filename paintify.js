@@ -49,7 +49,7 @@
             var positionTop = currentY - top;
             var positionBottom = top + height - currentY;
 
-            var distance = 10;
+            var distance = 14;
 
             // left
             if (positionLeft > 0 && positionLeft < distance) {
@@ -64,7 +64,7 @@
                     rectStyle.cursor = "ew-resize";
                 }
             // right
-            } else if (positionRight > 0 && positionRight < distance) {
+            } else if (positionRight < distance) {
                 if (positionTop < distance) {
                     rectDataset.direction = "rt";
                     rectStyle.cursor = "nesw-resize";
@@ -90,6 +90,13 @@
 
     var Paintify = function (drawingboard, option) {
         only = option.only;
+
+        var positionType = window.getComputedStyle(drawingboard).position;
+
+        if (positionType === 'static') {
+            console.warn("Note: container's position(css) is static, changed it into relative");
+            drawingboard.style.position = "relative";
+        } 
 
         var down = function(e) {
             // 点击时初始坐标
@@ -151,66 +158,84 @@
                 var isOverY = tph + drawingboardY <= drawingboardHeight && drawingboardY >= 0? true: false;
                 var isOverX = tpw + drawingboardX <= drawingboardWidth && drawingboardX >= 0? true: false;
 
+                var afterWidthLeft = parseInt(tp.style.width.replace('px', ''), 10) - (e.pageX - prevX);
+                var afterWidthRight = parseInt(tp.style.width.replace('px', ''), 10) + (e.pageX - prevX);
+                var afterHeightTop = parseInt(tp.style.height.replace('px', ''), 10) - (e.pageY - prevY);
+                var afterHeightBottom = parseInt(tp.style.height.replace('px', ''), 10) + (e.pageY - prevY);
+
+                var afterLeft = e.pageX - diffX >= 0? e.pageX - diffX : 0;
+                var afterTop = e.pageY - diffY >= 0? e.pageY - diffY : 0;
+                var currentLeft = parseInt(tp.style.left.replace('px', ''), 10);
+                var currentTop = parseInt(tp.style.top.replace('px', ''), 10);
+
+                var isOverRight = (afterWidthRight + currentLeft > drawingboardWidth)? true: false;
+                var isOverLeft = (afterWidthLeft + currentLeft > drawingboardWidth)? true: false;
+                var isOverTop = (afterHeightTop + currentTop > drawingboardHeight)? true: false;
+                var isOverBottom = (afterHeightBottom + currentTop > drawingboardHeight)? true: false;
+
                 switch(direction){
                     case 'c':
-                        true && (tp.style.top = drawingboardY + 'px');
-                        true && (tp.style.left = drawingboardX + 'px');
+                        isOverY && (tp.style.top = afterTop + 'px');
+                        isOverX && (tp.style.left = afterLeft + 'px');
                         break;
 
                     case 'lt':
-                        tp.style.left = e.pageX - diffX + 'px';
-                        tp.style.top = e.pageY - diffY + 'px';
+                        tp.style.left = afterLeft + 'px';
+                        tp.style.top = afterTop + 'px';
                         
-                        tp.style.width = parseInt(tp.style.width.replace('px', ''), 10) - (e.pageX - prevX) + 'px';
-                        tp.style.height = parseInt(tp.style.height.replace('px', ''), 10) - (e.pageY - prevY) + 'px';
+                        tp.style.width = afterWidthLeft + 'px';
+                        tp.style.height = afterHeightTop + 'px';
                         prevX = e.pageX;
                         prevY = e.pageY;
                         break;
 
                     case 'rt':
-                        tp.style.top = e.pageY - diffY + 'px';
-                        tp.style.width = parseInt(tp.style.width.replace('px', ''), 10) + (e.pageX - prevX) + 'px';
-                        tp.style.height = parseInt(tp.style.height.replace('px', ''), 10) - (e.pageY - prevY) + 'px';
+                        tp.style.top = afterTop + 'px';
+                        tp.style.width = afterWidthRight + 'px';
+                        tp.style.height = afterHeightTop + 'px';
                         prevX = e.pageX;
                         prevY = e.pageY;
                         break;
 
                     case 't':
-                        tp.style.top = e.pageY - diffY + 'px';
-                        tp.style.height = parseInt(tp.style.height.replace('px', ''), 10) - (e.pageY - prevY) + 'px';
+                        tp.style.top = afterTop + 'px';
+                        tp.style.height = afterHeightTop + 'px';
                         prevY = e.pageY;
                         break;
 
                     case 'lb':
-                        tp.style.left = e.pageX - diffX + 'px';
-                        
-                        tp.style.width = parseInt(tp.style.width.replace('px', ''), 10) - (e.pageX - prevX) + 'px';
-                        tp.style.height = parseInt(tp.style.height.replace('px', ''), 10) + (e.pageY - prevY) + 'px';
+                        if (!isOverLeft) {
+                            tp.style.left = afterLeft + 'px';
+                            tp.style.width = afterWidthLeft + 'px';
+                        }
+                        !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
                         prevX = e.pageX;
                         prevY = e.pageY;
                         break;
 
                     case 'rb':
-                        tp.style.width = parseInt(tp.style.width.replace('px', ''), 10) + (e.pageX - prevX) + 'px';
-                        tp.style.height = parseInt(tp.style.height.replace('px', ''), 10) + (e.pageY - prevY) + 'px';
+                        !isOverRight && (tp.style.width = afterWidthRight + 'px');
+                        !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
                         prevX = e.pageX;
                         prevY = e.pageY;
                         break;
 
                     case 'b':
-                        tp.style.height = parseInt(tp.style.height.replace('px', ''), 10) + (e.pageY - prevY) + 'px';
+                        !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
                         prevY = e.pageY;
                         break;
 
                     case 'l':
-                        tp.style.left = e.pageX - diffX + 'px';
+                        if (!isOverLeft) {
+                            tp.style.left = afterLeft + 'px';
+                            tp.style.width = afterWidthLeft + 'px';
+                        }
                         
-                        tp.style.width = parseInt(tp.style.width.replace('px', ''), 10) - (e.pageX - prevX) + 'px';
                         prevX = e.pageX;
                         break;
 
                     case 'r':
-                        tp.style.width = parseInt(tp.style.width.replace('px', ''), 10) + (e.pageX - prevX) + 'px';
+                        !isOverRight && (tp.style.width = afterWidthRight + 'px');
                         prevX = e.pageX;
                         break;
                 }

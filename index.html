@@ -4,11 +4,15 @@
     <meta charset="utf8" />
     <title>paintify demo</title>
 </head>
-<body style="height:500px;">
-
+<body>
+    <div id="container" style="height:500px;width:500px;border:1px solid;">
+       <!--  <div id="block1" class="paint2" style="position:absolute;top:2px;left:20px;height:30px;width:30px;border:1px solid;">
+            
+        </div> -->
+    </div>
     <script src="./paintify.js"></script>
     <script type="text/javascript">
-        var painter = new Paintify(document.querySelector('body'), { only: true });
+        var painter = new Paintify(document.querySelector('#container'), { only: true, blocks:[document.querySelector('#block1')] });
     </script>
 </body>
 </html>
