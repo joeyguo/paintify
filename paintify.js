@@ -18,12 +18,15 @@
         direction,
         dragging = false;
 
-    var only = false;
+    var only = false,
+        blocks = [];
 
     function paintRect(startX, startY) {
         var rect = document.createElement("div");
         rect.id = "activePaint";
+        // rect.draggable=false;
         rect.className = "paint-rect";
+        rect.dataset.paintifyblock = true;
         rect.style.left = startX + 'px';
         rect.style.top = startY + 'px';
         rect.style.cssText += "background: #99E9FC;width: 0px;height: 0px;position: absolute;opacity: 0.5;cursor: move;";
@@ -32,6 +35,11 @@
 
     function paintRectTransformable(rect) {
         rect.onmousemove = function(e) {
+            if (dragging) {
+                return;
+            }
+            // e.stopPropagation();
+            // console.log('rect.onmousemove')
             var rectStyle = rect.style;
             var rectDataset = rect.dataset;
 
@@ -90,6 +98,7 @@
 
     var Paintify = function (drawingboard, option) {
         only = option.only;
+        blocks = option.blocks || [];
 
         var positionType = window.getComputedStyle(drawingboard).position;
 
@@ -99,6 +108,7 @@
         } 
 
         var down = function(e) {
+            // console.log('down')
             // 点击时初始坐标
             startX = e.pageX;
             startY = e.pageY;
@@ -108,7 +118,7 @@
             prevY = e.pageY;
 
             // 如果鼠标在 rect 上被按下
-            if(e.target.className.match(/paint/)) {
+            if(e.target.dataset.paintifyblock) {
                 dragging = true; // 允许拖动
               
                 // 去掉其他 rect 标识，设置当前 rect 的 id 为 transformingPaint
@@ -135,13 +145,13 @@
         };
                
         var move = function(e) {
+            // console.log('move')
             // 更新 rect 尺寸
             if(drawingboard.querySelector("#activePaint") !== null) {
                 var ab = drawingboard.querySelector("#activePaint");
                 ab.style.width = e.pageX - startX + 'px';
                 ab.style.height = e.pageY - startY + 'px';
             }
-            
             // 移动，更新 rect 坐标
             if(drawingboard.querySelector("#transformingPaint") !== null && dragging) {
                 var tp = drawingboard.querySelector("#transformingPaint");
@@ -244,18 +254,50 @@
         };
         
         var leave = function(){
+            // console.log('leave')
             dragging = false; // 禁止拖动
             drawingboard.querySelector("#activePaint") && drawingboard.querySelector("#activePaint").removeAttribute("id");
+            // drawingboard.querySelector("#activePaint") && (drawingboard.querySelector("#activePaint").id = "transformingPaint");
         };
 
         drawingboard.onmousedown = down;
         drawingboard.onmousemove = move;
         drawingboard.onmouseleave = leave;
         drawingboard.onmouseup = leave;
+
     };
 
-    // Paintify.prototype = {
-    // };
+    Paintify.prototype = {
+        transformable: function(blocks) {
+            Object.prototype.toString.call(blocks) !== '[object Array]' && (blocks = [blocks]);
+
+            var arr = [];
+            for (var i = 0, block = null; i < blocks.length; i++) {
+                block = blocks[i];
+                block.dataset.paintifyblock = true;
+                paintRectTransformable(block);
+                var blockPositionType = window.getComputedStyle(block).position;
+                if (blockPositionType !== 'absolute') {
+                    var blockTop = block.offsetTop;
+                    var blockLeft = block.offsetLeft;
+                    arr.push({
+                        dom: block,
+                        left: blockLeft,
+                        top: blockTop
+                    });
+                }
+            }
+
+            arr.map(function(item,i){
+                var d = item.dom;
+                d.style.position = 'absolute';
+                d.style.top = item.top + 'px';
+                d.style.left = item.left + 'px';
+                d.style.margin = 0;
+                console.warn("Note:", d, "position(css) is changed into absolute");
+            });
+        }
+    };
 
     if (typeof module !== 'undefined' && typeof exports === 'object') {
         module.exports = Paintify;
