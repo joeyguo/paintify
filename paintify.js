@@ -86,7 +86,7 @@
             } else if (positionTop > 0 && positionTop < distance) {
                 rectDataset.direction = "t";
                 rectStyle.cursor = "ns-resize";
-            } else if(positionBottom > 0 && positionBottom < distance) {
+            } else if(positionBottom < distance) {
                 rectDataset.direction = "b";
                 rectStyle.cursor = "ns-resize";
             }else {
@@ -102,6 +102,8 @@
 
         var positionType = window.getComputedStyle(drawingboard).position;
 
+        // fix 拖拽时，鼠标显示禁止拖动的图示，“xx被选中了”
+        drawingboard.style.userSelect= "none";
         if (positionType === 'static') {
             console.warn("Note: container's position(css) is static, changed it into relative");
             drawingboard.style.position = "relative";
