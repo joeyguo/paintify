@@ -6,19 +6,61 @@
 </head>
 <body>
     <div id="container" style="height:500px;width:500px;border:1px solid;">
-        <div id="block1" draggable="false" style="height:30px;width:30px;background:#BCF31A;"></div>
-        <div id="block2" draggable="false" style="height:30px;width:30px;background:#1AFF00;margin-top: 6px;"></div>
+        <div id="block1" style="height:30px;width:30px;background:#BCF31A;"></div>
+        <div id="block2" style="height:30px;width:30px;background:#1AFF00;margin-top: 6px;"></div>
     </div>
     <script src="./paintify.js"></script>
     <script type="text/javascript">
+        function getMeasureData(target) {
+            var width = target.offsetWidth;
+            var height = target.offsetHeight;
+            var x = target.offsetLeft;
+            var y = target.offsetTop;
+
+            return [x, y, width, height];
+        }
+
         var painter = new Paintify(document.querySelector('#container'), { 
-                        only: true
+                        only: true, // 是否只能绘制一个
+                        onStart: function(target) {
+                            console.log(target);
+                        },
+                        onMove: function (target) {
+                            console.log(getMeasureData(target));
+                        },
+                        onStop: function () {
+                            console.log('stop');
+                        }
                     });
 
+        // add single block
+        // painter.transformable(document.querySelector('#block1'), {
+        //     onStart: function(target) {
+        //         console.log(target);
+        //     },
+        //     onMove: function (target) {
+        //         console.log(getMeasureData(target));
+        //     },
+        //     onStop: function () {
+        //         console.log('stop');
+        //     }
+        // })
+        
+        // add multiple blocks
         painter.transformable([
                             document.querySelector('#block1'),
                             document.querySelector('#block2')
-                        ])
+                        ], {
+                            onStart: function(target) {
+                                console.log(target);
+                            },
+                            onMove: function (target) {
+                                console.log(getMeasureData(target));
+                            },
+                            onStop: function () {
+                                console.log('stop');
+                            }
+                        });
     </script>
 </body>
 </html>
