@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf8"/>
+    <title>measure-paintify demo</title>
+</head>
+<body>
+    <div id="container" style="height:730px;width:1122px;background:#00bfa5">
+        <div style="background: red;width: 4px;height: 4px;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);border-radius: 50%;"></div>
+        <div id="info" style="opacity:.8;background:#29b6f6;color:#fff;z-index:999;display: inline-block;">
+            <div style="padding:10px" id="infoContent">
+                <p style="margin: 0;">"width": 0,</p>
+                <p style="margin: 0;">"height": 0,</p>
+                <p style="margin: 0;">"offsetx": 0,</p>
+                <p style="margin: 0;">"offsety": 0</p>
+            </div>
+            <div style="border-top: 1px solid #0091ea;text-align: right;margin-top: 4px;padding: 6px;">
+                <button id="copyBtn" style="border: navajowhite;background: #fff;color: #29b6f6;font-size: 16px;">copy</button>
+            </div>
+        </div> 
+    </div>
+    <script src="../paintify.js"></script>
+    <script src="./utils.js"></script>
+    <script type="text/javascript">
+        var container = document.querySelector('#container');
+        var infoContent = document.getElementById('infoContent');
+
+        var containerWidth = container.offsetWidth;
+        var containerHeight = container.offsetHeight;
+
+        function getMeasureData(target) {
+            var width = target.offsetWidth,
+                height = target.offsetHeight,
+                x = target.offsetLeft,
+                y = target.offsetTop;
+            return [x, y, width, height];
+        }
+
+        function showInfo(x, y, width, height) {
+            var relativeX = x + Math.ceil(1/2 * width) - containerWidth / 2;
+            var relativeY = y + Math.ceil(1/2 * height) - containerHeight / 2;
+            infoContent.innerHTML = '<p style="margin: 0;">"width": ' + width + ',</p>' + 
+                                    '<p style="margin: 0;">"height": ' + height + ',</p>' + 
+                                    '<p style="margin: 0;">"offsetx": ' + relativeX + ',</p>' + 
+                                    '<p style="margin: 0;">"offsety": ' + relativeY + '</p>';
+        }
+
+        document.getElementById('copyBtn').addEventListener('click', function(e){
+            utils.copyDom(infoContent);
+        });
+        
+        var painter = new Paintify(container, { 
+                        only: true,
+                        onStart: function(target) {
+                            showInfo.apply(null, getMeasureData(target));
+                        },
+                        onMove: function (target) {
+                            showInfo.apply(null, getMeasureData(target));
+                        },
+                        onStop: function () {
+                            console.log('stop');
+                        }
+                    });
+        painter.transformable(document.querySelector('#info'));
+    </script>
+</body>
+</html>
