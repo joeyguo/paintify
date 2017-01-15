@@ -18,8 +18,40 @@
         direction,
         dragging = false;
 
-    var only = false,
-        blocks = [];
+    var emptyFunction = function (){}
+    var onStart = emptyFunction;
+    var onMove = emptyFunction;
+    var onStop = emptyFunction;
+
+    var paintifyblock_id = 0;
+
+    var drawingboard = null,
+        only = false,
+        blocks = [],
+        distance = 10;
+
+
+    var callbacks = {};
+    function resigisterCallBack(paintifyblock_id, opt) {
+        callbacks[paintifyblock_id] = {
+            onStart: (opt.onStart || emptyFunction),
+            onMove: (opt.onMove || emptyFunction),
+            onStop: (opt.onStop || emptyFunction),
+        };
+    }
+
+    var getStyle = function(o, key){
+        return o.currentStyle? o.currentStyle[key] : document.defaultView.getComputedStyle(o,false)[key];   
+    };
+
+    var getMeasure = function(target) {
+        return {
+            top: getStyle(target, 'top'),
+            left: getStyle(target, 'left'),
+            height: getStyle(target, 'height'),
+            width: getStyle(target, 'width'),
+        }
+    }
 
     function paintRect(startX, startY) {
         var rect = document.createElement("div");
@@ -57,8 +89,7 @@
             var positionTop = currentY - top;
             var positionBottom = top + height - currentY;
 
-            var distance = 14;
-
+            // distance = distance < 10? distance + 10: distance;
             // left
             if (positionLeft > 0 && positionLeft < distance) {
                 if (positionTop < distance) {
@@ -96,9 +127,12 @@
         };
     }
 
-    var Paintify = function (drawingboard, option) {
-        only = option.only;
-        blocks = option.blocks || [];
+    var Paintify = function (drawingboard, opt) {
+        drawingboard = drawingboard;
+        opt = opt || {};
+        only = opt.only;
+        blocks = opt.blocks || [];
+        opt.distance && (distance = opt.distance);
 
         var positionType = window.getComputedStyle(drawingboard).position;
 
@@ -119,20 +153,34 @@
             prevX = e.pageX;
             prevY = e.pageY;
 
+            var target = e.target;
+            var isPaintifyblock = false;
+
+            while(target !== drawingboard){
+                if (target.dataset.paintifyblock) {
+                    isPaintifyblock = true;
+                    break;
+                }
+                target = target.parentNode;
+            }
+
             // 如果鼠标在 rect 上被按下
-            if(e.target.dataset.paintifyblock) {
+            if(isPaintifyblock) {
                 dragging = true; // 允许拖动
               
                 // 去掉其他 rect 标识，设置当前 rect 的 id 为 transformingPaint
                 drawingboard.querySelector("#transformingPaint") && drawingboard.querySelector("#transformingPaint").removeAttribute("id");
-                e.target.id = "transformingPaint";
+                target.id = "transformingPaint";
 
                 // 设置当前方向
-                direction = e.target.dataset.direction;
+                direction = target.dataset.direction;
 
                 // 初始坐标与 rect 左上角坐标之差，用于拖动
-                diffX = startX - e.target.offsetLeft;
-                diffY = startY - e.target.offsetTop;
+                diffX = startX - target.offsetLeft;
+                diffY = startY - target.offsetTop;
+                
+                // callback
+                callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
             }
             else {
                 if (only) {
@@ -143,16 +191,25 @@
                 var rect = paintRect(startX, startY);
                 drawingboard.appendChild(rect);
                 paintRectTransformable(rect);
+
+                rect.dataset.paintifyblock_id = ++paintifyblock_id;
+                resigisterCallBack(paintifyblock_id, opt);
+
+                // callback
+                callbacks[paintifyblock_id] && callbacks[paintifyblock_id].onStart(rect);
             }
         };
                
         var move = function(e) {
-            // console.log('move')
+            // console.log('move');
             // 更新 rect 尺寸
             if(drawingboard.querySelector("#activePaint") !== null) {
                 var ab = drawingboard.querySelector("#activePaint");
                 ab.style.width = e.pageX - startX + 'px';
                 ab.style.height = e.pageY - startY + 'px';
+                
+                // callback
+                callbacks[ab.dataset.paintifyblock_id] && callbacks[ab.dataset.paintifyblock_id].onMove(ab);
             }
             // 移动，更新 rect 坐标
             if(drawingboard.querySelector("#transformingPaint") !== null && dragging) {
@@ -192,7 +249,7 @@
                         break;
 
                     case 'lt':
-                        tp.style.left = afterLeft + 'px';
+                        // tp.style.left = afterLeft + 'px';
                         tp.style.top = afterTop + 'px';
                         
                         tp.style.width = afterWidthLeft + 'px';
@@ -251,41 +308,58 @@
                         prevX = e.pageX;
                         break;
                 }
-               
+                
+                // callback
+                callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onMove(tp);
             }
+
+
         };
         
         var leave = function(){
             // console.log('leave')
             dragging = false; // 禁止拖动
             drawingboard.querySelector("#activePaint") && drawingboard.querySelector("#activePaint").removeAttribute("id");
-            // drawingboard.querySelector("#activePaint") && (drawingboard.querySelector("#activePaint").id = "transformingPaint");
+            
+            // TODO 区分 callback
+            // callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop();
         };
 
         drawingboard.onmousedown = down;
         drawingboard.onmousemove = move;
         drawingboard.onmouseleave = leave;
         drawingboard.onmouseup = leave;
-
     };
 
     Paintify.prototype = {
-        transformable: function(blocks) {
+        transformable: function(blocks, opt) {
             Object.prototype.toString.call(blocks) !== '[object Array]' && (blocks = [blocks]);
+            opt = opt || {};
+            
 
             var arr = [];
             for (var i = 0, block = null; i < blocks.length; i++) {
                 block = blocks[i];
+                // dom 不存在时
+                if (!block) return;
+
+                block.dataset.paintifyblock_id = ++paintifyblock_id;
+                resigisterCallBack(paintifyblock_id, opt);
+
                 block.dataset.paintifyblock = true;
                 paintRectTransformable(block);
                 var blockPositionType = window.getComputedStyle(block).position;
                 if (blockPositionType !== 'absolute') {
                     var blockTop = block.offsetTop;
                     var blockLeft = block.offsetLeft;
+                    var blockWidth = block.offsetWidth;
+                    var blockHeight = block.offsetHeight;
                     arr.push({
                         dom: block,
                         left: blockLeft,
-                        top: blockTop
+                        top: blockTop,
+                        width: blockWidth,
+                        height: blockHeight,
                     });
                 }
             }
@@ -295,6 +369,11 @@
                 d.style.position = 'absolute';
                 d.style.top = item.top + 'px';
                 d.style.left = item.left + 'px';
+
+                // TODO block dom 在 absolute 时为 inline-block width
+                // 设置了 width 则会导致远 dom 会自动伸缩的特性，考虑用 min-width
+                // d.style.width = item.width + 'px';
+                // d.style.height = item.height + 'px';
                 d.style.margin = 0;
                 console.warn("Note:", d, "position(css) is changed into absolute");
             });
