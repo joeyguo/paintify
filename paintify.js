@@ -23,7 +23,7 @@
     var paintifyblock_id = 0;
 
     var drawingboard = null,
-        only = false,
+        count = -1,
         blocks = [],
         distance = 10;
 
@@ -129,8 +129,8 @@
     var Paintify = function (drawingboard, opt) {
         drawingboard = drawingboard;
         opt = opt || {};
-        only = opt.only;
         blocks = opt.blocks || [];
+        opt.count && (count = opt.count);
         opt.distance && (distance = opt.distance);
 
         var positionType = window.getComputedStyle(drawingboard).position;
@@ -182,20 +182,19 @@
                 callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
             }
             else {
-                if (only) {
-                    var rectExisted = drawingboard.querySelector(".paint-rect");
-                    rectExisted &&  rectExisted.parentNode.removeChild(rectExisted);
+                var rectExisted = drawingboard.querySelectorAll(".paint-rect") || [];
+                if (rectExisted.length < count || count < 0) {
+                    // 在页面创建 rect
+                    var rect = paintRect(startX, startY);
+                    drawingboard.appendChild(rect);
+                    paintRectTransformable(rect);
+
+                    rect.dataset.paintifyblock_id = ++paintifyblock_id;
+                    resigisterCallBack(paintifyblock_id, opt);
+
+                    // callback
+                    callbacks[paintifyblock_id] && callbacks[paintifyblock_id].onStart(rect);
                 }
-                // 在页面创建 rect
-                var rect = paintRect(startX, startY);
-                drawingboard.appendChild(rect);
-                paintRectTransformable(rect);
-
-                rect.dataset.paintifyblock_id = ++paintifyblock_id;
-                resigisterCallBack(paintifyblock_id, opt);
-
-                // callback
-                callbacks[paintifyblock_id] && callbacks[paintifyblock_id].onStart(rect);
             }
         };
                
