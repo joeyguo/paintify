@@ -19,9 +19,6 @@
         dragging = false;
 
     var emptyFunction = function (){}
-    var onStart = emptyFunction;
-    var onMove = emptyFunction;
-    var onStop = emptyFunction;
 
     var paintifyblock_id = 0;
 
@@ -323,10 +320,20 @@
         var leave = function(){
             // console.log('leave')
             dragging = false; // 禁止拖动
-            drawingboard.querySelector("#activePaint") && drawingboard.querySelector("#activePaint").removeAttribute("id");
             
-            // TODO 区分 callback
-            // callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop();
+            var ap = drawingboard.querySelector("#activePaint");
+            var tp = drawingboard.querySelector("#transformingPaint");
+
+            // 更新 rect 尺寸
+            if(ap !== null) {
+                ap.removeAttribute("id");
+                // callback
+                callbacks[ap.dataset.paintifyblock_id] && callbacks[ap.dataset.paintifyblock_id].onStop(ap);
+            }
+            // 移动，更新 rect 坐标
+            if(tp !== null) {
+                callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop(tp);
+            }
         };
 
         drawingboard.onmousedown = down;

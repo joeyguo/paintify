@@ -28,7 +28,8 @@
                         onMove: function (target) {
                             console.log(getMeasureData(target));
                         },
-                        onStop: function () {
+                        onStop: function (target) {
+                            console.log(target);
                             console.log('stop');
                         }
                     });
@@ -41,7 +42,7 @@
         //     onMove: function (target) {
         //         console.log(getMeasureData(target));
         //     },
-        //     onStop: function () {
+        //     onStop: function (target) {
         //         console.log('stop');
         //     }
         // })
@@ -57,7 +58,8 @@
                             onMove: function (target) {
                                 console.log(getMeasureData(target));
                             },
-                            onStop: function () {
+                            onStop: function (target) {
+                                console.log(target);
                                 console.log('stop');
                             }
                         });
