@@ -75,10 +75,12 @@
             var rectStyle = rect.style;
             var rectDataset = rect.dataset;
 
-            var top = parseInt(rectStyle.top.replace(/px/, ''), 10);
-            var left = parseInt(rectStyle.left.replace(/px/, ''), 10);
-            var width = parseInt(rectStyle.width.replace(/px/, ''), 10);
-            var height = parseInt(rectStyle.height.replace(/px/, ''), 10);
+            var measureData = getMeasure(rect);
+
+            var top = parseInt(measureData.top.replace(/px/, ''), 10);
+            var left = parseInt(measureData.left.replace(/px/, ''), 10);
+            var width = parseInt(measureData.width.replace(/px/, ''), 10);
+            var height = parseInt(measureData.height.replace(/px/, ''), 10);
             
             var currentX = e.pageX;
             var currentY = e.pageY;
@@ -227,15 +229,17 @@
                 var isOverY = tph + drawingboardY <= drawingboardHeight && drawingboardY >= 0? true: false;
                 var isOverX = tpw + drawingboardX <= drawingboardWidth && drawingboardX >= 0? true: false;
 
-                var afterWidthLeft = parseInt(tp.style.width.replace('px', ''), 10) - (e.pageX - prevX);
-                var afterWidthRight = parseInt(tp.style.width.replace('px', ''), 10) + (e.pageX - prevX);
-                var afterHeightTop = parseInt(tp.style.height.replace('px', ''), 10) - (e.pageY - prevY);
-                var afterHeightBottom = parseInt(tp.style.height.replace('px', ''), 10) + (e.pageY - prevY);
+                var measureData = getMeasure(tp);
+               
+                var afterWidthLeft = parseInt(measureData.width.replace('px', ''), 10) - (e.pageX - prevX);
+                var afterWidthRight = parseInt(measureData.width.replace('px', ''), 10) + (e.pageX - prevX);
+                var afterHeightTop = parseInt(measureData.height.replace('px', ''), 10) - (e.pageY - prevY);
+                var afterHeightBottom = parseInt(measureData.height.replace('px', ''), 10) + (e.pageY - prevY);
 
                 var afterLeft = e.pageX - diffX >= 0? e.pageX - diffX : 0;
                 var afterTop = e.pageY - diffY >= 0? e.pageY - diffY : 0;
-                var currentLeft = parseInt(tp.style.left.replace('px', ''), 10);
-                var currentTop = parseInt(tp.style.top.replace('px', ''), 10);
+                var currentLeft = parseInt(measureData.left.replace('px', ''), 10);
+                var currentTop = parseInt(measureData.top.replace('px', ''), 10);
 
                 var isOverRight = (afterWidthRight + currentLeft > drawingboardWidth)? true: false;
                 var isOverLeft = (afterWidthLeft + currentLeft > drawingboardWidth)? true: false;
