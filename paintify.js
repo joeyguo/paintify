@@ -135,6 +135,25 @@
 
         var positionType = window.getComputedStyle(drawingboard).position;
 
+        // 右键删除 paintifyblock 
+        drawingboard.oncontextmenu = function (e) {
+            var target = e.target;
+            var isPaintifyblock = false;
+
+            while(target !== drawingboard){
+                if (target.dataset.paintifyblock) {
+                    isPaintifyblock = true;
+                    break;
+                }
+                target = target.parentNode;
+            }
+
+            if (isPaintifyblock) {
+                target.parentNode.removeChild(target);
+                return false;
+            }
+        };
+
         // fix 拖拽时，鼠标显示禁止拖动的图示，“xx被选中了”
         drawingboard.style.userSelect= "none";
         drawingboard.style.webkitUserSelect= "none";
@@ -195,7 +214,7 @@
 
                     // callback
                     callbacks[paintifyblock_id] && callbacks[paintifyblock_id].onStart(rect);
-                }
+                } 
             }
         };
                
