@@ -137,6 +137,7 @@
 
         // fix 拖拽时，鼠标显示禁止拖动的图示，“xx被选中了”
         drawingboard.style.userSelect= "none";
+        drawingboard.style.webkitUserSelect= "none";
         if (positionType === 'static') {
             console.warn("Note: container's position(css) is static, changed it into relative");
             drawingboard.style.position = "relative";
