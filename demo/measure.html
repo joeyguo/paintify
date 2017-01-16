@@ -3,11 +3,45 @@
 <head>
     <meta charset="utf8"/>
     <title>measure-paintify demo</title>
+    <style>
+        .img-selector{
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            background: #fff;
+        }
+        .img-selector div{
+            color: #5A5A5A;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .selfile{
+            margin-top: 14px;
+            color: #03A9F4;
+            font-size: 50px;
+            display: block;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div id="container" style="height:730px;width:1122px;background:#00bfa5">
+    <div class="img-selector" id="imageSelector">
+        <div>
+            背景图 拖拽至此 / 点击添加 <span id="usePrevBgBtn" style="display:none;"> / <span style="cursor: pointer;color: #03A9F4;text-decoration: underline;">使用上次背景</span></span>
+            <label for="fileSelecter" class="selfile">+</label>
+            <input type="file" value="请选择图片" id="fileSelecter" style="display:none;" />
+        </div>
+    </div>
+
+    <div id="container" style="height:auto;width:auto;">
         <div style="background: red;width: 4px;height: 4px;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);border-radius: 50%;"></div>
-        <div id="info" style="opacity:.8;background:#29b6f6;color:#fff;z-index:999;display: inline-block;">
+        <div id="info" style="opacity:.8;background:#29b6f6;color:#fff;z-index:100;display: inline-block;">
             <div style="padding:10px" id="infoContent">
                 <p style="margin: 0;">"width": 0,</p>
                 <p style="margin: 0;">"height": 0,</p>
@@ -15,54 +49,114 @@
                 <p style="margin: 0;">"offsety": 0</p>
             </div>
             <div style="border-top: 1px solid #0091ea;text-align: right;margin-top: 4px;padding: 6px;">
-                <button id="copyBtn" style="border: navajowhite;background: #fff;color: #29b6f6;font-size: 16px;">copy</button>
+                <button id="backToIndexBtn" style="cursor: pointer;border: none;background: #fff;color: #29b6f6;font-size: 16px;">< 首页</button>
+                <button id="copyBtn" style="cursor: pointer;border: none;background: #fff;color: #29b6f6;font-size: 16px;">copy</button>
             </div>
         </div> 
     </div>
     <script src="../paintify.js"></script>
     <script src="./utils.js"></script>
     <script type="text/javascript">
-        var container = document.querySelector('#container');
-        var infoContent = document.getElementById('infoContent');
+        function init () {
+            var container = document.querySelector('#container');
+            var infoContent = document.getElementById('infoContent');
 
-        var containerWidth = container.offsetWidth;
-        var containerHeight = container.offsetHeight;
+            var containerWidth = container.offsetWidth;
+            var containerHeight = container.offsetHeight;
 
-        function getMeasureData(target) {
-            var width = target.offsetWidth,
-                height = target.offsetHeight,
-                x = target.offsetLeft,
-                y = target.offsetTop;
-            return [x, y, width, height];
+            function getMeasureData(target) {
+                var width = target.offsetWidth,
+                    height = target.offsetHeight,
+                    x = target.offsetLeft,
+                    y = target.offsetTop;
+                return [x, y, width, height];
+            }
+
+            function showInfo(x, y, width, height) {
+                var relativeX = x + Math.ceil(1/2 * width) - containerWidth / 2;
+                var relativeY = y + Math.ceil(1/2 * height) - containerHeight / 2;
+                infoContent.innerHTML = '<p style="margin: 0;">"width": ' + width + ',</p>' + 
+                                        '<p style="margin: 0;">"height": ' + height + ',</p>' + 
+                                        '<p style="margin: 0;">"offsetx": ' + relativeX + ',</p>' + 
+                                        '<p style="margin: 0;">"offsety": ' + relativeY + '</p>';
+            }
+
+            document.getElementById('copyBtn').addEventListener('click', function(e){
+                utils.copyDom(infoContent);
+            });
+            
+            document.getElementById('backToIndexBtn').addEventListener('click', function(e){
+                var imageSelector = document.querySelector('#imageSelector');
+                imageSelector.style.display = 'block';
+            });
+
+            var painter = new Paintify(container, { 
+                            count: 1,
+                            onStart: function(target) {
+                                showInfo.apply(null, getMeasureData(target));
+                            },
+                            onMove: function (target) {
+                                showInfo.apply(null, getMeasureData(target));
+                            },
+                            onStop: function (target) {
+                                console.log(target);
+                                console.log('stop');
+                            }
+                        });
+            painter.transformable(document.querySelector('#info'));
+        }
+    </script>
+    <script type="text/javascript">
+        var usePrevBgBtn = document.querySelector('#usePrevBgBtn');
+        var localImageResult = null;
+        if(localImageResult = localStorage.getItem && localStorage.getItem('paintify_bg_prev')){
+            usePrevBgBtn.style.display = 'inline-block';
+
+            // 默认展示上次背景
+            gotImage(localImageResult)
+
+            // 回到首页时，支持选择上次背景
+            usePrevBgBtn.addEventListener('click', function(){
+                gotImage(localImageResult)
+            })
         }
 
-        function showInfo(x, y, width, height) {
-            var relativeX = x + Math.ceil(1/2 * width) - containerWidth / 2;
-            var relativeY = y + Math.ceil(1/2 * height) - containerHeight / 2;
-            infoContent.innerHTML = '<p style="margin: 0;">"width": ' + width + ',</p>' + 
-                                    '<p style="margin: 0;">"height": ' + height + ',</p>' + 
-                                    '<p style="margin: 0;">"offsetx": ' + relativeX + ',</p>' + 
-                                    '<p style="margin: 0;">"offsety": ' + relativeY + '</p>';
+        var imageSelector = document.querySelector('#imageSelector');
+        var fileSelecter = document.querySelector('#fileSelecter');
+        var reader = new FileReader();
+        reader.onload = function(e){
+            gotImage(e.target.result);
         }
 
-        document.getElementById('copyBtn').addEventListener('click', function(e){
-            utils.copyDom(infoContent);
-        });
-        
-        var painter = new Paintify(container, { 
-                        count: 2,
-                        onStart: function(target) {
-                            showInfo.apply(null, getMeasureData(target));
-                        },
-                        onMove: function (target) {
-                            showInfo.apply(null, getMeasureData(target));
-                        },
-                        onStop: function (target) {
-                            console.log(target);
-                            console.log('stop');
-                        }
-                    });
-        painter.transformable(document.querySelector('#info'));
+        fileSelecter.onchange = function(event){
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        imageSelector.addEventListener('dragover',function(e){
+            e.preventDefault();//阻止默认事件
+        },false)
+      
+        imageSelector.addEventListener('drop',function(e){
+            e.preventDefault();
+            reader.readAsDataURL(e.dataTransfer.files[0])
+        },false)
+       
+        function gotImage(result){
+            var img = document.createElement('img');
+            img.setAttribute('src', result);
+
+            var container = document.querySelector('#container');
+            container.style.backgroundImage = 'url(' + img.src + ')';
+            container.style.width = img.naturalWidth + 'px';
+            container.style.height = img.naturalHeight + 'px';
+
+            var imageSelector = document.querySelector('#imageSelector');
+            imageSelector.style.display = 'none';
+
+            localStorage.setItem && localStorage.setItem('paintify_bg_prev', result);
+
+            init();
+        }
     </script>
 </body>
 </html>
