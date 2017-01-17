@@ -174,6 +174,7 @@
             drawingboard.style.position = "relative";
         } 
 
+        var target = null;
         var down = function(e) {
             // console.log('down')
             // 点击时初始坐标
@@ -184,7 +185,8 @@
             prevX = e.pageX;
             prevY = e.pageY;
 
-            var target = e.target;
+            target = e.target;
+
             var isPaintifyblock = false;
 
             while(target !== drawingboard){
@@ -195,13 +197,22 @@
                 target = target.parentNode;
             }
 
+            target.combineDom = [];
+            target.combine = function(dom) {
+                target.combineDom.push(dom);
+            };
+            target.clearCombine = function(dom) {
+                target.combineDom = [];
+            };
+
             // 如果鼠标在 rect 上被按下
             if(isPaintifyblock) {
                 dragging = true; // 允许拖动
-              
                 // 去掉其他 rect 标识，设置当前 rect 的 id 为 transformingPaint
-                drawingboard.querySelector("#transformingPaint") && drawingboard.querySelector("#transformingPaint").removeAttribute("id");
-                target.id = "transformingPaint";
+                if (drawingboard.querySelector("[data-transformingpaint]")) {
+                    delete drawingboard.querySelector("[data-transformingpaint]").dataset.transformingpaint;
+                }
+                target.dataset.transformingpaint = true;
 
                 // 设置当前方向
                 direction = target.dataset.direction;
@@ -209,7 +220,6 @@
                 // 初始坐标与 rect 左上角坐标之差，用于拖动
                 diffX = startX - target.offsetLeft;
                 diffY = startY - target.offsetTop;
-                
                 // callback
                 callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
             }
@@ -244,11 +254,15 @@
                 
                 // callback
                 callbacks[ab.dataset.paintifyblock_id] && callbacks[ab.dataset.paintifyblock_id].onMove(ab);
+                return;
             }
-            // 移动，更新 rect 坐标
-            if(drawingboard.querySelector("#transformingPaint") !== null && dragging) {
-                var tp = drawingboard.querySelector("#transformingPaint");
+            target && target.isOver === true && (target = null);
 
+            // 移动，更新 rect 坐标
+            if(target !== null && dragging ) {
+            // if(drawingboard.querySelector("[data-transformingpaint]") !== null && dragging) {
+                var tp = target;
+                // var tp = drawingboard.querySelector("[data-transformingpaint]");
                 var tph = tp.offsetHeight;
                 var tpw = tp.offsetWidth;
 
@@ -278,71 +292,83 @@
                 var isOverTop = (afterHeightTop + currentTop > drawingboardHeight)? true: false;
                 var isOverBottom = (afterHeightBottom + currentTop > drawingboardHeight)? true: false;
 
-                switch(direction){
-                    case 'c':
-                        isOverY && (tp.style.top = afterTop + 'px');
-                        isOverX && (tp.style.left = afterLeft + 'px');
-                        break;
+                var distanceTop = afterTop - parseInt(tp.style.top.replace('px', ''), 10);
+                var distanceLeft = afterLeft - parseInt(tp.style.left.replace('px', ''), 10);
+                
+                function modifyMeasure(tp, direction) {
+                    switch(direction){
+                        case 'c':
+                            // 使用移动的距离，支持 combine
+                            isOverY && (tp.style.top = parseInt(tp.style.top.replace('px', ''), 10) + distanceTop + 'px');
+                            isOverX && (tp.style.left = parseInt(tp.style.left.replace('px', ''), 10) + distanceLeft + 'px');
+                            break;
 
-                    case 'lt':
-                        // tp.style.left = afterLeft + 'px';
-                        tp.style.top = afterTop + 'px';
-                        
-                        tp.style.width = afterWidthLeft + 'px';
-                        tp.style.height = afterHeightTop + 'px';
-                        prevX = e.pageX;
-                        prevY = e.pageY;
-                        break;
-
-                    case 'rt':
-                        tp.style.top = afterTop + 'px';
-                        tp.style.width = afterWidthRight + 'px';
-                        tp.style.height = afterHeightTop + 'px';
-                        prevX = e.pageX;
-                        prevY = e.pageY;
-                        break;
-
-                    case 't':
-                        tp.style.top = afterTop + 'px';
-                        tp.style.height = afterHeightTop + 'px';
-                        prevY = e.pageY;
-                        break;
-
-                    case 'lb':
-                        if (!isOverLeft) {
-                            tp.style.left = afterLeft + 'px';
+                        case 'lt':
+                            // tp.style.left = afterLeft + 'px';
+                            tp.style.top = afterTop + 'px';
+                            
                             tp.style.width = afterWidthLeft + 'px';
-                        }
-                        !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
-                        prevX = e.pageX;
-                        prevY = e.pageY;
-                        break;
+                            tp.style.height = afterHeightTop + 'px';
+                            prevX = e.pageX;
+                            prevY = e.pageY;
+                            break;
 
-                    case 'rb':
-                        !isOverRight && (tp.style.width = afterWidthRight + 'px');
-                        !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
-                        prevX = e.pageX;
-                        prevY = e.pageY;
-                        break;
+                        case 'rt':
+                            tp.style.top = afterTop + 'px';
+                            tp.style.width = afterWidthRight + 'px';
+                            tp.style.height = afterHeightTop + 'px';
+                            prevX = e.pageX;
+                            prevY = e.pageY;
+                            break;
 
-                    case 'b':
-                        !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
-                        prevY = e.pageY;
-                        break;
+                        case 't':
+                            tp.style.top = afterTop + 'px';
+                            tp.style.height = afterHeightTop + 'px';
+                            prevY = e.pageY;
+                            break;
 
-                    case 'l':
-                        if (!isOverLeft) {
-                            tp.style.left = afterLeft + 'px';
-                            tp.style.width = afterWidthLeft + 'px';
-                        }
-                        
-                        prevX = e.pageX;
-                        break;
+                        case 'lb':
+                            if (!isOverLeft) {
+                                tp.style.left = afterLeft + 'px';
+                                tp.style.width = afterWidthLeft + 'px';
+                            }
+                            !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
+                            prevX = e.pageX;
+                            prevY = e.pageY;
+                            break;
 
-                    case 'r':
-                        !isOverRight && (tp.style.width = afterWidthRight + 'px');
-                        prevX = e.pageX;
-                        break;
+                        case 'rb':
+                            !isOverRight && (tp.style.width = afterWidthRight + 'px');
+                            !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
+                            prevX = e.pageX;
+                            prevY = e.pageY;
+                            break;
+
+                        case 'b':
+                            !isOverBottom && (tp.style.height = afterHeightBottom + 'px');
+                            prevY = e.pageY;
+                            break;
+
+                        case 'l':
+                            if (!isOverLeft) {
+                                tp.style.left = afterLeft + 'px';
+                                tp.style.width = afterWidthLeft + 'px';
+                            }
+                            
+                            prevX = e.pageX;
+                            break;
+
+                        case 'r':
+                            !isOverRight && (tp.style.width = afterWidthRight + 'px');
+                            prevX = e.pageX;
+                            break;
+                    }
+                }
+
+                modifyMeasure(tp, direction);
+
+                for (var i = 0; i < target.combineDom.length; i++) {
+                    modifyMeasure(target.combineDom[i], direction);
                 }
                 
                 // callback
@@ -357,8 +383,8 @@
             dragging = false; // 禁止拖动
             
             var ap = drawingboard.querySelector("#activePaint");
-            var tp = drawingboard.querySelector("#transformingPaint");
-
+            var tp = drawingboard.querySelector("[data-transformingpaint]");
+ 
             // 更新 rect 尺寸
             if(ap !== null) {
                 ap.removeAttribute("id");
@@ -367,7 +393,8 @@
             }
             // 移动，更新 rect 坐标
             if(tp !== null) {
-                tp.removeAttribute("id");
+                target = null;
+                delete tp.dataset.transformingpaint;
                 callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop(tp);
             }
         };
