@@ -363,16 +363,17 @@
 
     Paintify.prototype = {
         transformable: function(blocks, opt) {
-            Object.prototype.toString.call(blocks) !== '[object Array]' && (blocks = [blocks]);
+            var blocksType = Object.prototype.toString.call(blocks);
+            if (!( blocksType === '[object Array]' || blocksType === '[object NodeList]')) {
+                blocks = [blocks];
+            }
             opt = opt || {};
             
-
             var arr = [];
             for (var i = 0, block = null; i < blocks.length; i++) {
                 block = blocks[i];
                 // dom 不存在时
                 if (!block) return;
-
                 block.dataset.paintifyblock_id = ++paintifyblock_id;
                 resigisterCallBack(paintifyblock_id, opt);
 
