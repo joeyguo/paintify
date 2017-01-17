@@ -126,6 +126,16 @@
         };
     }
 
+    function paintRectTransformableWithoutResize(rect) {
+        rect.onmousemove = function(e) {
+            if (dragging) {
+                return;
+            }
+            rect.dataset.direction = "c";
+            rect.style.cursor = "move";
+        };
+    }
+
     var Paintify = function (drawingboard, opt) {
         drawingboard = drawingboard;
         opt = opt || {};
@@ -134,6 +144,8 @@
         opt.distance && (distance = opt.distance);
 
         var positionType = window.getComputedStyle(drawingboard).position;
+
+        var withoutResizable = opt.withoutResizable;
 
         // 右键删除 paintifyblock 
         drawingboard.oncontextmenu = function (e) {
@@ -207,7 +219,11 @@
                     // 在页面创建 rect
                     var rect = paintRect(startX, startY);
                     drawingboard.appendChild(rect);
-                    paintRectTransformable(rect);
+                    if (withoutResizable) {
+                        paintRectTransformableWithoutResize(rect);
+                    } else {
+                        paintRectTransformable(rect);
+                    }
 
                     rect.dataset.paintifyblock_id = ++paintifyblock_id;
                     resigisterCallBack(paintifyblock_id, opt);
@@ -351,6 +367,7 @@
             }
             // 移动，更新 rect 坐标
             if(tp !== null) {
+                tp.removeAttribute("id");
                 callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop(tp);
             }
         };
@@ -368,7 +385,7 @@
                 blocks = [blocks];
             }
             opt = opt || {};
-            
+            var withoutResizable = opt.withoutResizable;
             var arr = [];
             for (var i = 0, block = null; i < blocks.length; i++) {
                 block = blocks[i];
@@ -378,7 +395,13 @@
                 resigisterCallBack(paintifyblock_id, opt);
 
                 block.dataset.paintifyblock = true;
-                paintRectTransformable(block);
+
+                if (withoutResizable) {
+                    paintRectTransformableWithoutResize(block);
+                } else {
+                    paintRectTransformable(block);
+                }
+
                 var blockPositionType = window.getComputedStyle(block).position;
                 if (blockPositionType !== 'absolute') {
                     var blockTop = block.offsetTop;
