@@ -140,7 +140,7 @@
         drawingboard = drawingboard;
         opt = opt || {};
         blocks = opt.blocks || [];
-        opt.count && (count = opt.count);
+        (opt.count !== undefined) && (count = opt.count);
         opt.distance && (distance = opt.distance);
 
         var positionType = window.getComputedStyle(drawingboard).position;
