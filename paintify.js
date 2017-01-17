@@ -222,8 +222,7 @@
                 diffY = startY - target.offsetTop;
                 // callback
                 callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
-            }
-            else {
+            } else {
                 var rectExisted = drawingboard.querySelectorAll(".paint-rect") || [];
                 if (rectExisted.length < count || count < 0) {
                     // 在页面创建 rect
