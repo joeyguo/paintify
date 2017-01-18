@@ -34,6 +34,10 @@
             onStart: (opt.onStart || emptyFunction),
             onMove: (opt.onMove || emptyFunction),
             onStop: (opt.onStop || emptyFunction),
+            onDrop: (opt.onDrop || emptyFunction),
+            onDragover: (opt.onDragover || emptyFunction),
+            onDragleave: (opt.onDragleave || emptyFunction),
+            onDragenter: (opt.onDragenter || emptyFunction),
         };
     }
 
@@ -43,10 +47,46 @@
 
     var getMeasure = function(target) {
         return {
-            top: getStyle(target, 'top'),
-            left: getStyle(target, 'left'),
-            height: getStyle(target, 'height'),
-            width: getStyle(target, 'width'),
+            top: getStyle(target, 'top') && parseInt(getStyle(target, 'top').replace(/px/, ''), 10),
+            left: getStyle(target, 'left') && parseInt(getStyle(target, 'left').replace(/px/, ''), 10),
+            height: getStyle(target, 'height') && parseInt(getStyle(target, 'height').replace(/px/, ''), 10),
+            width: getStyle(target, 'width') && parseInt(getStyle(target, 'width').replace(/px/, ''), 10),
+        };
+    };
+
+    function checkInDropbox(target, dropboxs, opt) {
+        var currentMeasureData = getMeasure(target);
+        var top = currentMeasureData.top,
+            left = currentMeasureData.left,
+            width = currentMeasureData.width,
+            height = currentMeasureData.height;
+
+        var overCallback = opt.overCallback || emptyFunction,
+            enterCallback = opt.enterCallback || emptyFunction,
+            leaveCallback = opt.leaveCallback || emptyFunction;
+
+        var centerLeft = left + width / 2;
+        var centerTop = top + height / 2;
+
+        for (var i = 0, dropbox = null; i < dropboxs.length; i++) {
+            dropbox = dropboxs[i];
+            var dropboxMeasureData = dropbox.measureData;
+            var dropboxTop = dropboxMeasureData.top;
+            var dropboxLeft = dropboxMeasureData.left;
+            var dropboxWidth = dropboxMeasureData.width;
+            var dropboxHeight = dropboxMeasureData.height;
+            if (centerLeft > dropboxLeft && centerLeft < dropboxLeft + dropboxWidth && centerTop > dropboxTop && centerTop < dropboxTop + dropboxHeight) {
+                if (!dropbox.isEntered) {
+                    enterCallback(target, dropbox);
+                }
+                dropbox.isEntered = true;
+                overCallback(target, dropbox);
+            } else {
+                if (dropbox.isEntered) {
+                    dropbox.isEntered = false;
+                    leaveCallback && leaveCallback(target, dropbox);
+                }
+            }
         }
     }
 
@@ -74,20 +114,22 @@
 
             var measureData = getMeasure(rect);
 
-            var top = parseInt(measureData.top.replace(/px/, ''), 10);
-            var left = parseInt(measureData.left.replace(/px/, ''), 10);
-            var width = parseInt(measureData.width.replace(/px/, ''), 10);
-            var height = parseInt(measureData.height.replace(/px/, ''), 10);
+            var top = measureData.top;
+            var left = measureData.left;
+            var width = measureData.width;
+            var height = measureData.height;
             
             var currentX = e.pageX;
             var currentY = e.pageY;
 
-            var positionLeft = currentX - left;
-            var positionRight = left + width - currentX;
+            var drawingboardLeft = _drawingboard.offsetLeft;
+            var drawingboardTop = _drawingboard.offsetTop;
 
-            var positionTop = currentY - top;
-            var positionBottom = top + height - currentY;
+            var positionLeft = (currentX - drawingboardLeft) - left;
+            var positionRight = left + width - (currentX - drawingboardLeft);
 
+            var positionTop = (currentY - drawingboardTop) - top;
+            var positionBottom = top + height - (currentY - drawingboardTop);
             // distance = distance < 10? distance + 10: distance;
             // left
             if (positionLeft > 0 && positionLeft < distance) {
@@ -160,7 +202,7 @@
     }
 
     var Paintify = function (drawingboard, opt) {
-        drawingboard = drawingboard;
+        _drawingboard = drawingboard;
         opt = opt || {};
         blocks = opt.blocks || [];
         (opt.count !== undefined) && (count = opt.count);
@@ -227,6 +269,27 @@
                 // 初始坐标与 rect 左上角坐标之差，用于拖动
                 diffX = startX - target.offsetLeft;
                 diffY = startY - target.offsetTop;
+
+                target.dataset.beforemeasure = JSON.stringify({
+                    top: target.style.top,
+                    left: target.style.left,
+                    width: target.style.width,
+                    height: target.style.height,
+                    zIndex: target.style.zIndex
+                });
+
+                target.reset = function() {
+                    var beforemeasure = this.dataset.beforemeasure && JSON.parse(this.dataset.beforemeasure);
+                    console.log('beforemeasure')
+                    console.log(beforemeasure)
+                    // this 指向 target
+                    this.style.top = beforemeasure.top;
+                    this.style.left = beforemeasure.left;
+                    this.style.width = beforemeasure.width;
+                    this.style.height = beforemeasure.height;
+                    this.style.zIndex = beforemeasure.zIndex;
+                };
+
                 // callback
                 callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
             } else {
@@ -283,23 +346,23 @@
 
                 var measureData = getMeasure(tp);
                
-                var afterWidthLeft = parseInt(measureData.width.replace('px', ''), 10) - (e.pageX - prevX);
-                var afterWidthRight = parseInt(measureData.width.replace('px', ''), 10) + (e.pageX - prevX);
-                var afterHeightTop = parseInt(measureData.height.replace('px', ''), 10) - (e.pageY - prevY);
-                var afterHeightBottom = parseInt(measureData.height.replace('px', ''), 10) + (e.pageY - prevY);
+                var afterWidthLeft = measureData.width - (e.pageX - prevX);
+                var afterWidthRight = measureData.width + (e.pageX - prevX);
+                var afterHeightTop = measureData.height - (e.pageY - prevY);
+                var afterHeightBottom = measureData.height + (e.pageY - prevY);
 
                 var afterLeft = e.pageX - diffX >= 0? e.pageX - diffX : 0;
                 var afterTop = e.pageY - diffY >= 0? e.pageY - diffY : 0;
-                var currentLeft = parseInt(measureData.left.replace('px', ''), 10);
-                var currentTop = parseInt(measureData.top.replace('px', ''), 10);
+                var currentLeft = measureData.left;
+                var currentTop = measureData.top;
 
                 var isOverRight = (afterWidthRight + currentLeft > drawingboardWidth)? true: false;
                 var isOverLeft = (afterWidthLeft + currentLeft > drawingboardWidth)? true: false;
                 var isOverTop = (afterHeightTop + currentTop > drawingboardHeight)? true: false;
                 var isOverBottom = (afterHeightBottom + currentTop > drawingboardHeight)? true: false;
 
-                var distanceTop = afterTop - parseInt(tp.style.top.replace('px', ''), 10);
-                var distanceLeft = afterLeft - parseInt(tp.style.left.replace('px', ''), 10);
+                var distanceTop = afterTop - currentTop;
+                var distanceLeft = afterLeft - currentLeft;
                 
                 function modifyMeasure(tp, direction) {
                     switch(direction){
@@ -310,7 +373,7 @@
                             break;
 
                         case 'lt':
-                            // tp.style.left = afterLeft + 'px';
+                            tp.style.left = afterLeft + 'px';
                             tp.style.top = afterTop + 'px';
                             
                             tp.style.width = afterWidthLeft + 'px';
@@ -369,6 +432,23 @@
                             prevX = e.pageX;
                             break;
                     }
+
+                    if (dropboxs) {
+                        checkInDropbox(tp, dropboxs, {
+                            overCallback: function(target, dropbox){
+                                var dropboxpaintifyblockId = dropbox.paintifyblock_id;
+                                callbacks[dropboxpaintifyblockId].onDragover(target, dropbox.dom);
+                            },
+                            enterCallback: function(target, dropbox) {
+                                var dropboxpaintifyblockId = dropbox.paintifyblock_id;
+                                callbacks[dropboxpaintifyblockId].onDragenter(target, dropbox.dom);
+                            },
+                            leaveCallback: function(target, dropbox) {
+                                var dropboxpaintifyblockId = dropbox.paintifyblock_id;
+                                callbacks[dropboxpaintifyblockId].onDragleave(target, dropbox.dom);
+                            }
+                        });
+                    }
                 }
 
                 modifyMeasure(tp, direction);
@@ -380,17 +460,37 @@
                 // callback
                 callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onMove(tp);
             }
-
-
         };
         
+        function setBeforeMeasure(target) {
+            target.dataset.beforemeasure = JSON.stringify({
+                top: target.style.top,
+                left: target.style.left,
+                width: target.style.width,
+                height: target.style.height,
+                zIndex: target.style.zIndex
+            });
+        }
+
         var leave = function(){
+            
             // console.log('leave')
             dragging = false; // 禁止拖动
             
             var ap = drawingboard.querySelector("#activePaint");
             var tp = drawingboard.querySelector("[data-transformingpaint]");
- 
+            
+            var isInBox = false;
+            if (dropboxs && tp !== null) {
+                checkInDropbox(tp, dropboxs, {
+                    overCallback: function(target, dropbox){
+                        isInBox = true;
+                        var dropboxpaintifyblockId = dropbox.paintifyblock_id;
+                        callbacks[dropboxpaintifyblockId].onDrop(target, dropbox.dom);
+                    }
+                });
+            }
+
             // 更新 rect 尺寸
             if(ap !== null) {
                 ap.removeAttribute("id");
@@ -401,8 +501,15 @@
             if(tp !== null) {
                 target = null;
                 delete tp.dataset.transformingpaint;
-                callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop(tp);
+                callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onStop(tp, {
+                    isInBox: isInBox
+                });
+                setBeforeMeasure(tp);
             }
+
+            // 清除绑定
+            target && target.clearCombine && target.clearCombine();
+
         };
 
         drawingboard.onmousedown = down;
@@ -411,6 +518,7 @@
         drawingboard.onmouseup = leave;
     };
 
+    var dropboxs = [];
     Paintify.prototype = {
         transformable: function(blocks, opt) {
             var blocksType = Object.prototype.toString.call(blocks);
@@ -464,6 +572,84 @@
                 d.style.margin = 0;
                 console.warn("Note:", d, "position(css) is changed into absolute");
             });
+        },
+        block: function(blocks, opt) {
+            var blocksType = Object.prototype.toString.call(blocks);
+            if (!( blocksType === '[object Array]' || blocksType === '[object NodeList]')) {
+                blocks = [blocks];
+            }
+            opt = opt || {};
+            var resize = opt.resize;
+            var move = opt.move;
+            var drop = opt.drop;
+
+            var withoutResizable = opt.withoutResizable;
+            var arr = [];
+            for (var i = 0, block = null; i < blocks.length; i++) {
+                block = blocks[i];
+                // dom 不存在时
+                if (!block) return;
+                block.dataset.paintifyblock_id = ++paintifyblock_id;
+                resigisterCallBack(paintifyblock_id, opt);
+
+                block.dataset.paintifyblock = true;
+
+                if (resize && move) {
+                    paintRectTransformable(block);
+                }
+                if (move) {
+                    paintRectTransformableWithoutResize(block);
+                }
+                if (drop) {
+
+                }
+
+                var blockPositionType = window.getComputedStyle(block).position;
+                if (blockPositionType !== 'absolute') {
+                    var blockTop = block.offsetTop;
+                    var blockLeft = block.offsetLeft;
+                    var blockWidth = block.offsetWidth;
+                    var blockHeight = block.offsetHeight;
+                    arr.push({
+                        paintifyblock_id: paintifyblock_id,
+                        dom: block,
+                        left: blockLeft,
+                        top: blockTop,
+                        width: blockWidth,
+                        height: blockHeight,
+                    });
+                }
+            }
+
+            arr.map(function(item,i){
+                var d = item.dom;
+                d.style.position = 'absolute';
+                d.style.top = item.top + 'px';
+                d.style.left = item.left + 'px';
+
+                // TODO block dom 在 absolute 时为 inline-block width
+                // 设置了 width 则会导致远 dom 会自动伸缩的特性，考虑用 min-width
+                // d.style.width = item.width + 'px';
+                // d.style.height = item.height + 'px';
+                d.style.margin = 0;
+
+                if (drop) {
+                    dropboxs.push({
+                        paintifyblock_id: item.paintifyblock_id, 
+                        dom: d,
+                        measureData: {
+                            left: item.left,
+                            top: item.top,
+                            width: item.width,
+                            height: item.height
+                        },
+                        onDrop: (opt.onDrop || emptyFunction),
+                        onDragover: (opt.onDragover || emptyFunction),
+                    });
+                }
+
+                // console.warn("Note:", d, "position(css) is changed into absolute");
+            });
         }
     };
 
@@ -473,4 +659,3 @@
         window.Paintify = Paintify;
     }
 }());
-
