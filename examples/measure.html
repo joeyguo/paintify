@@ -92,7 +92,9 @@
                 imageSelector.style.display = 'block';
             });
 
-            var painter = new Paintify(container, { 
+            var painter = new Paintify(container, {
+                            resize: true,
+                            move: true,
                             count: 1,
                             onBlockContextMenu: function(target) {
                                 // 右键删除 paintifyblock 
@@ -109,7 +111,10 @@
                                 // console.log('stop');
                             }
                         });
-            painter.transformable(document.querySelector('#info'));
+            painter.paint(document.querySelector('#info'),{
+                            resize: true,
+                            move: true
+                        });
         }
     </script>
     <script type="text/javascript">

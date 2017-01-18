@@ -194,7 +194,7 @@
         var painter = new Paintify(container, { count: 0 });
 
         var blocks = document.querySelectorAll('.block');
-        painter.block(blocks, {
+        painter.paint(blocks, {
             resize: false,
             move: false,
             drop: true,
@@ -209,6 +209,7 @@
 
                 // 在原列剔除 删除多个时，进行统一删除下标改变
                 currentColCards[beforecol].splice(beforerow,1);
+                target.id = 'card-1_-1';
             },
             onDragenter: function(target, dropboxDom) {
                 console.log('onDragenter');
@@ -222,8 +223,9 @@
         });
 
         var cardDom = document.querySelectorAll('.card');
-        painter.transformable(cardDom, {
-            withoutResizable: true,
+        painter.paint(cardDom, {
+            resize: false,
+            move: true,
             onStart: function(target) {
                 // combine
                 var rowcol = target.id && target.id.replace('card', '').split('_');
@@ -234,7 +236,7 @@
                 var type = cardvalue[0];
                 var value = cardvalue[1];
 
-                var beforerowsize = currentColCards[beforecol].length;
+                var beforerowsize = currentColCards[beforecol] && currentColCards[beforecol].length;
                 var currentrow = beforerow;
 
                 var isNotSuit = false;
@@ -263,9 +265,9 @@
                     target.style.zIndex = z;
                     for (var i = 0, dom; i < combineDomTmp.length; i++) {
                         dom = combineDomTmp[i];
-                        dom.style.zIndex = ++z;
                         // 将其他dom进行绑定，做相同的操作
                         target.combine(dom);
+                        dom.style.zIndex = ++z;
                     }
                 }
             },
@@ -293,7 +295,8 @@
                         var cLeft = (left + 41) % 100;
                         var currentcol = Math.floor((left + 41) / 100);
                         var isMoved = false;
-                       
+                        console.log('beforecol' + beforecol)
+                        console.log('currentcol' + currentcol)
                         if (cLeft < 81 && beforecol != currentcol) {
                             var cCol = currentColCards[currentcol];
                             var cRow = cCol.length - 1;
@@ -305,6 +308,7 @@
                             if (parseInt(lastValue, 10) - 1 !== parseInt(value, 10) || isAllReset) {
                                 isAllReset = true;
                                 console.log('reset')
+                                console.log(target)
                                 target.reset();
                                 return;
                             }
@@ -320,7 +324,7 @@
                             target.id = 'card' + (parseInt(cRow, 10) + 1) + '_' + parseInt(currentcol, 10);
                             target.style.zIndex = (parseInt(cRow, 10) + 1);
                             // 在原列剔除 删除多个时，进行统一删除下标改变
-                            currentColCards[beforecol].splice(beforerow,(target.combineDom && target.combineDom.length || 0) + 1)
+                            currentColCards[beforecol] && currentColCards[beforecol].splice(beforerow,(target.combineDom && target.combineDom.length || 0) + 1)
                         } else {
                             console.log('revert')
                             // 原位

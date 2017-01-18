@@ -21,7 +21,9 @@
             return [x, y, width, height];
         }
 
-        var painter = new Paintify(document.querySelector('#container'), { 
+        var painter = new Paintify(document.querySelector('#container'), {
+                        resize: true,
+                        move: true,
                         count: 1, // 是否只能绘制一个
                         // 在绘制的图形或 paintifyblock 右键时触发，回传 paintifyblock
                         onBlockContextMenu: function(target) {
@@ -44,7 +46,7 @@
                     });
 
         // add single block
-        // painter.transformable(document.querySelector('#block1'), {
+        // painter.paint(document.querySelector('#block1'), {
         //     onStart: function(target) {
         //         console.log(target);
         //     },
@@ -57,10 +59,12 @@
         // })
         
         // add multiple blocks
-        painter.transformable([
+        painter.paint([
                             document.querySelector('#block1'),
                             document.querySelector('#block2')
                         ], {
+                            resize: true,
+                            move: true,
                             onStart: function(target) {
                                 console.log(target);
                             },
