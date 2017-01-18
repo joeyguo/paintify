@@ -16,20 +16,17 @@
         prevX,
         prevY,
         direction,
-        dragging = false;
+        dragging = false,
 
-    var emptyFunction = function (){}
-
-    var paintifyblock_id = 0;
-
-    var drawingboard = null,
+        _drawingboard = null,
         count = -1,
         blocks = [],
-        distance = 10;
+        distance = 10,
+        paintifyblock_id = 0,
+        emptyFunction = function (){},
+        callbacks = {};
 
-
-    var callbacks = {};
-    function resigisterCallBack(paintifyblock_id, opt) {
+    function register(paintifyblock_id, opt) {
         callbacks[paintifyblock_id] = {
             onStart: (opt.onStart || emptyFunction),
             onMove: (opt.onMove || emptyFunction),
@@ -55,36 +52,36 @@
     };
 
     function checkInDropbox(target, dropboxs, opt) {
-        var currentMeasureData = getMeasure(target);
-        var top = currentMeasureData.top,
-            left = currentMeasureData.left,
-            width = currentMeasureData.width,
-            height = currentMeasureData.height;
+        var currentMD = getMeasure(target),
 
-        var overCallback = opt.overCallback || emptyFunction,
-            enterCallback = opt.enterCallback || emptyFunction,
-            leaveCallback = opt.leaveCallback || emptyFunction;
+            top = currentMD.top,
+            left = currentMD.left,
+            width = currentMD.width,
+            height = currentMD.height,
 
-        var centerLeft = left + width / 2;
-        var centerTop = top + height / 2;
+            centerLeft = left + width / 2,
+            centerTop = top + height / 2;
 
-        for (var i = 0, dropbox = null; i < dropboxs.length; i++) {
+        for (var i = 0, dropbox = null, dbMD = null, dbTop = 0, dbLeft = 0, dbWidth = 0, dbHeight = 0; i < dropboxs.length; i++) {
             dropbox = dropboxs[i];
-            var dropboxMeasureData = dropbox.measureData;
-            var dropboxTop = dropboxMeasureData.top;
-            var dropboxLeft = dropboxMeasureData.left;
-            var dropboxWidth = dropboxMeasureData.width;
-            var dropboxHeight = dropboxMeasureData.height;
-            if (centerLeft > dropboxLeft && centerLeft < dropboxLeft + dropboxWidth && centerTop > dropboxTop && centerTop < dropboxTop + dropboxHeight) {
+            dbMD = dropbox.measureData,
+            dbTop = dbMD.top,
+            dbLeft = dbMD.left,
+            dbWidth = dbMD.width,
+            dbHeight = dbMD.height;
+
+            // check
+            if (centerLeft > dbLeft && centerLeft < dbLeft + dbWidth && centerTop > dbTop && centerTop < dbTop + dbHeight) {
                 if (!dropbox.isEntered) {
-                    enterCallback(target, dropbox);
+                    dropbox.isEntered = true;
+                    opt.enterCallback && opt.enterCallback(target, dropbox);
+                } else {
+                    opt.overCallback && opt.overCallback(target, dropbox);
                 }
-                dropbox.isEntered = true;
-                overCallback(target, dropbox);
             } else {
                 if (dropbox.isEntered) {
                     dropbox.isEntered = false;
-                    leaveCallback && leaveCallback(target, dropbox);
+                    opt.leaveCallback && opt.leaveCallback(target, dropbox);
                 }
             }
         }
@@ -93,7 +90,6 @@
     function paintRect(startX, startY) {
         var rect = document.createElement("div");
         rect.id = "activePaint";
-        // rect.draggable=false;
         rect.className = "paint-rect";
         rect.dataset.paintifyblock = true;
         rect.style.left = startX + 'px';
@@ -104,34 +100,29 @@
 
     function paintRectTransformable(rect) {
         rect.onmousemove = function(e) {
-            if (dragging) {
-                return;
-            }
-            // e.stopPropagation();
-            // console.log('rect.onmousemove')
-            var rectStyle = rect.style;
-            var rectDataset = rect.dataset;
+            if (dragging) return;
+
+            var rectStyle = rect.style,
+                rectDataset = rect.dataset;
 
             var measureData = getMeasure(rect);
 
-            var top = measureData.top;
-            var left = measureData.left;
-            var width = measureData.width;
-            var height = measureData.height;
+            var top = measureData.top,
+                left = measureData.left,
+                width = measureData.width,
+                height = measureData.height;
             
-            var currentX = e.pageX;
-            var currentY = e.pageY;
+            var currentX = e.pageX,
+                currentY = e.pageY;
 
-            var drawingboardLeft = _drawingboard.offsetLeft;
-            var drawingboardTop = _drawingboard.offsetTop;
+            var drawingboardLeft = _drawingboard.offsetLeft,
+                drawingboardTop = _drawingboard.offsetTop;
 
-            var positionLeft = (currentX - drawingboardLeft) - left;
-            var positionRight = left + width - (currentX - drawingboardLeft);
+            var positionLeft = (currentX - drawingboardLeft) - left,
+                positionRight = left + width - (currentX - drawingboardLeft),
+                positionTop = (currentY - drawingboardTop) - top,
+                positionBottom = top + height - (currentY - drawingboardTop);
 
-            var positionTop = (currentY - drawingboardTop) - top;
-            var positionBottom = top + height - (currentY - drawingboardTop);
-            // distance = distance < 10? distance + 10: distance;
-            // left
             if (positionLeft > 0 && positionLeft < distance) {
                 if (positionTop < distance) {
                     rectStyle.cursor = "nwse-resize";
@@ -143,7 +134,6 @@
                     rectDataset.direction = "l";
                     rectStyle.cursor = "ew-resize";
                 }
-            // right
             } else if (positionRight < distance) {
                 if (positionTop < distance) {
                     rectDataset.direction = "rt";
@@ -201,13 +191,35 @@
         };
     }
 
+    function setBeforeMeasure(target) {
+        var targetStyle = target.style;
+        target.dataset.beforemeasure = JSON.stringify({
+            top: targetStyle.top,
+            left: targetStyle.left,
+            width: targetStyle.width,
+            height: targetStyle.height,
+            zIndex: targetStyle.zIndex
+        });
+
+        target.reset = function() {
+            var beforemeasure = this.dataset.beforemeasure && JSON.parse(this.dataset.beforemeasure);
+            this.style.top = beforemeasure.top;
+            this.style.left = beforemeasure.left;
+            this.style.width = beforemeasure.width;
+            this.style.height = beforemeasure.height;
+            this.style.zIndex = beforemeasure.zIndex;
+        };
+    }
+
     var Paintify = function (drawingboard, opt) {
         _drawingboard = drawingboard;
         opt = opt || {};
         blocks = opt.blocks || [];
         (opt.count !== undefined) && (count = opt.count);
         opt.distance && (distance = opt.distance);
-        var withoutResizable = opt.withoutResizable;
+        var resize = opt.resize,
+            move = opt.move,
+            drop = opt.drop;
         var onBlockContextMenu = opt.onBlockContextMenu;
         var onContextMenu = opt.onContextMenu;
 
@@ -224,7 +236,7 @@
         } 
 
         var target = null;
-        var down = function(e) {
+        var downCb = function(e) {
             // console.log('down')
             // 点击时初始坐标
             startX = e.pageX;
@@ -249,6 +261,7 @@
             target.combineDom = [];
             target.combine = function(dom) {
                 target.combineDom.push(dom);
+                setBeforeMeasure(dom);
             };
             target.clearCombine = function(dom) {
                 target.combineDom = [];
@@ -270,25 +283,7 @@
                 diffX = startX - target.offsetLeft;
                 diffY = startY - target.offsetTop;
 
-                target.dataset.beforemeasure = JSON.stringify({
-                    top: target.style.top,
-                    left: target.style.left,
-                    width: target.style.width,
-                    height: target.style.height,
-                    zIndex: target.style.zIndex
-                });
-
-                target.reset = function() {
-                    var beforemeasure = this.dataset.beforemeasure && JSON.parse(this.dataset.beforemeasure);
-                    console.log('beforemeasure')
-                    console.log(beforemeasure)
-                    // this 指向 target
-                    this.style.top = beforemeasure.top;
-                    this.style.left = beforemeasure.left;
-                    this.style.width = beforemeasure.width;
-                    this.style.height = beforemeasure.height;
-                    this.style.zIndex = beforemeasure.zIndex;
-                };
+                setBeforeMeasure(target);
 
                 // callback
                 callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
@@ -298,14 +293,17 @@
                     // 在页面创建 rect
                     var rect = paintRect(startX, startY);
                     drawingboard.appendChild(rect);
-                    if (withoutResizable) {
-                        paintRectTransformableWithoutResize(rect);
-                    } else {
+                    if (resize && move) {
                         paintRectTransformable(rect);
+                    } else if (move) {
+                        paintRectTransformableWithoutResize(rect);
+                    }
+                    if (drop) {
+
                     }
 
                     rect.dataset.paintifyblock_id = ++paintifyblock_id;
-                    resigisterCallBack(paintifyblock_id, opt);
+                    register(paintifyblock_id, opt);
 
                     // callback
                     callbacks[paintifyblock_id] && callbacks[paintifyblock_id].onStart(rect);
@@ -313,7 +311,7 @@
             }
         };
                
-        var move = function(e) {
+        var moveCb = function(e) {
             // console.log('move');
             // 更新 rect 尺寸
             if(drawingboard.querySelector("#activePaint") !== null) {
@@ -461,19 +459,8 @@
                 callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onMove(tp);
             }
         };
-        
-        function setBeforeMeasure(target) {
-            target.dataset.beforemeasure = JSON.stringify({
-                top: target.style.top,
-                left: target.style.left,
-                width: target.style.width,
-                height: target.style.height,
-                zIndex: target.style.zIndex
-            });
-        }
 
-        var leave = function(){
-            
+        var leaveCb = function(){
             // console.log('leave')
             dragging = false; // 禁止拖动
             
@@ -485,6 +472,7 @@
                 checkInDropbox(tp, dropboxs, {
                     overCallback: function(target, dropbox){
                         isInBox = true;
+                        console.log(target)
                         var dropboxpaintifyblockId = dropbox.paintifyblock_id;
                         callbacks[dropboxpaintifyblockId].onDrop(target, dropbox.dom);
                     }
@@ -509,71 +497,17 @@
 
             // 清除绑定
             target && target.clearCombine && target.clearCombine();
-
         };
 
-        drawingboard.onmousedown = down;
-        drawingboard.onmousemove = move;
-        drawingboard.onmouseleave = leave;
-        drawingboard.onmouseup = leave;
+        drawingboard.onmousedown = downCb;
+        drawingboard.onmousemove = moveCb;
+        drawingboard.onmouseleave = leaveCb;
+        drawingboard.onmouseup = leaveCb;
     };
 
     var dropboxs = [];
     Paintify.prototype = {
-        transformable: function(blocks, opt) {
-            var blocksType = Object.prototype.toString.call(blocks);
-            if (!( blocksType === '[object Array]' || blocksType === '[object NodeList]')) {
-                blocks = [blocks];
-            }
-            opt = opt || {};
-            var withoutResizable = opt.withoutResizable;
-            var arr = [];
-            for (var i = 0, block = null; i < blocks.length; i++) {
-                block = blocks[i];
-                // dom 不存在时
-                if (!block) return;
-                block.dataset.paintifyblock_id = ++paintifyblock_id;
-                resigisterCallBack(paintifyblock_id, opt);
-
-                block.dataset.paintifyblock = true;
-
-                if (withoutResizable) {
-                    paintRectTransformableWithoutResize(block);
-                } else {
-                    paintRectTransformable(block);
-                }
-
-                var blockPositionType = window.getComputedStyle(block).position;
-                if (blockPositionType !== 'absolute') {
-                    var blockTop = block.offsetTop;
-                    var blockLeft = block.offsetLeft;
-                    var blockWidth = block.offsetWidth;
-                    var blockHeight = block.offsetHeight;
-                    arr.push({
-                        dom: block,
-                        left: blockLeft,
-                        top: blockTop,
-                        width: blockWidth,
-                        height: blockHeight,
-                    });
-                }
-            }
-
-            arr.map(function(item,i){
-                var d = item.dom;
-                d.style.position = 'absolute';
-                d.style.top = item.top + 'px';
-                d.style.left = item.left + 'px';
-
-                // TODO block dom 在 absolute 时为 inline-block width
-                // 设置了 width 则会导致远 dom 会自动伸缩的特性，考虑用 min-width
-                // d.style.width = item.width + 'px';
-                // d.style.height = item.height + 'px';
-                d.style.margin = 0;
-                console.warn("Note:", d, "position(css) is changed into absolute");
-            });
-        },
-        block: function(blocks, opt) {
+        paint: function(blocks, opt) {
             var blocksType = Object.prototype.toString.call(blocks);
             if (!( blocksType === '[object Array]' || blocksType === '[object NodeList]')) {
                 blocks = [blocks];
@@ -583,21 +517,19 @@
             var move = opt.move;
             var drop = opt.drop;
 
-            var withoutResizable = opt.withoutResizable;
             var arr = [];
             for (var i = 0, block = null; i < blocks.length; i++) {
                 block = blocks[i];
                 // dom 不存在时
                 if (!block) return;
                 block.dataset.paintifyblock_id = ++paintifyblock_id;
-                resigisterCallBack(paintifyblock_id, opt);
+                register(paintifyblock_id, opt);
 
                 block.dataset.paintifyblock = true;
 
                 if (resize && move) {
                     paintRectTransformable(block);
-                }
-                if (move) {
+                } else if (move) {
                     paintRectTransformableWithoutResize(block);
                 }
                 if (drop) {
@@ -647,7 +579,6 @@
                         onDragover: (opt.onDragover || emptyFunction),
                     });
                 }
-
                 // console.warn("Note:", d, "position(css) is changed into absolute");
             });
         }
