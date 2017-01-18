@@ -136,36 +136,43 @@
         };
     }
 
+    function contextMenu(drawingboard, onBlockContextMenu, onContextMenu) {
+        drawingboard.oncontextmenu = function (e) {
+            var target = e.target;
+            var isPaintifyblock = false;
+            var paintifyblockTarget = target;
+
+            while(paintifyblockTarget !== drawingboard){
+                if (paintifyblockTarget.dataset.paintifyblock) {
+                    isPaintifyblock = true;
+                    break;
+                }
+                paintifyblockTarget = paintifyblockTarget.parentNode;
+            }
+
+            if (isPaintifyblock) {
+                onBlockContextMenu && onBlockContextMenu(paintifyblockTarget);
+            } else {
+                onContextMenu && onContextMenu(target);
+            }
+            return false;
+        };
+    }
+
     var Paintify = function (drawingboard, opt) {
         drawingboard = drawingboard;
         opt = opt || {};
         blocks = opt.blocks || [];
         (opt.count !== undefined) && (count = opt.count);
         opt.distance && (distance = opt.distance);
+        var withoutResizable = opt.withoutResizable;
+        var onBlockContextMenu = opt.onBlockContextMenu;
+        var onContextMenu = opt.onContextMenu;
 
         var positionType = window.getComputedStyle(drawingboard).position;
 
-        var withoutResizable = opt.withoutResizable;
-
-        // 右键删除 paintifyblock 
-        drawingboard.oncontextmenu = function (e) {
-            var target = e.target;
-            var isPaintifyblock = false;
-
-            while(target !== drawingboard){
-                if (target.dataset.paintifyblock) {
-                    isPaintifyblock = true;
-                    break;
-                }
-                target = target.parentNode;
-            }
-
-            if (isPaintifyblock) {
-                target.parentNode.removeChild(target);
-                return false;
-            }
-        };
-
+        (onBlockContextMenu || onContextMenu) && contextMenu(drawingboard, onBlockContextMenu, onContextMenu);
+        
         // fix 拖拽时，鼠标显示禁止拖动的图示，“xx被选中了”
         drawingboard.style.userSelect= "none";
         drawingboard.style.webkitUserSelect= "none";
