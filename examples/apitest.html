@@ -23,6 +23,14 @@
 
         var painter = new Paintify(document.querySelector('#container'), { 
                         count: 1, // 是否只能绘制一个
+                        // 在绘制的图形或 paintifyblock 右键时触发，回传 paintifyblock
+                        onBlockContextMenu: function(target) {
+                            target.parentNode.removeChild(target);
+                        },
+                        // 在整体画板上，非paintifyblock右键时触发
+                        onContextMenu: function(target) {
+                            console.log(target);
+                        },
                         onStart: function(target) {
                             console.log(target);
                         },
