@@ -94,6 +94,10 @@
 
             var painter = new Paintify(container, { 
                             count: 1,
+                            onBlockContextMenu: function(target) {
+                                // 右键删除 paintifyblock 
+                                target.parentNode.removeChild(target);
+                            },
                             onStart: function(target) {
                                 showInfo.apply(null, getMeasureData(target));
                             },
