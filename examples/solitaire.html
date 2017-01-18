@@ -7,12 +7,17 @@
         * {
             margin:0;
         }
+        html,
+        body{
+            width: 100%;
+            height: 100%;
+        }
         body{
             font-family: 'Segoe UI Light', 'Segoe UI', 'Microsoft Jhenghei', 微软雅黑, sans-serif;
             background: radial-gradient(#10923A,#084B1F);
         }
         #container {
-            height: 700px;
+            height: 100%;
             width: 790px;
             margin: auto;
         }
@@ -124,14 +129,14 @@
         }
 
         var rowHeight = 44;
-        
+
         for (var i = 0; i < cards.length -1; i++) {
             var row = Math.floor(i / 8);
             var col = i % 8;
             
             currentColCards[col] = currentColCards[col] || [];
             currentColCards[col].push(cards[i]);
-            cardsHtml += '<div class="card" id="card'+ row + '_' + col +'" data-cardvalue="'+ cards[i].type + '_' + cards[i].number +'"style="position:absolute;top:'+ (row * rowHeight) +'px;left:'+ (col * 100) +'px;"><i class="card-icon-'+ cards[i].type +'"></i><span class="card-number-top">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span><span class="card-number-bottom">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span></div>';
+            cardsHtml += '<div class="card" id="card'+ row + '_' + col +'" data-cardvalue="'+ cards[i].type + '_' + cards[i].number +'"style="position:absolute;z-index:'+ row +';top:'+ (row * rowHeight) +'px;left:'+ (col * 100) +'px;"><i class="card-icon-'+ cards[i].type +'"></i><span class="card-number-top">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span><span class="card-number-bottom">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span></div>';
         }
 
         var container = document.querySelector('#container');
