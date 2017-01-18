@@ -13,12 +13,12 @@
         }
         #container {
             height: 700px;
-            width: 900px;
+            width: 790px;
             margin: auto;
         }
         .card{
-            width:60px;
-            height:90px;
+            width:50px;
+            height:70px;
             background:#fff;
             border: 1px solid #9C9C9C;
             padding: 10px;
@@ -31,12 +31,12 @@
             
         }
         .card-number-top{
-            top: 10px;
-            left: 14px;
+            top: 6px;
+            left: 10px;
         }
         .card-number-bottom{
-            bottom: 10px;
-            right: 14px;
+            bottom: 6px;
+            right: 10px;
         }
         .card-type {
             text-align: center;
@@ -47,13 +47,13 @@
         .card-icon-1,
         .card-icon-2,
         .card-icon-3{
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
             background-size: cover;
             background-repeat: no-repeat;
             display: inline-block;
             position: absolute;
-            top: 34px;
+            top: 24px;
             left: 20px;
         }
         .card-icon-0{
@@ -122,13 +122,16 @@
             12: 'Q',
             13: 'K'
         }
+
+        var rowHeight = 44;
+        
         for (var i = 0; i < cards.length -1; i++) {
             var row = Math.floor(i / 8);
             var col = i % 8;
             
             currentColCards[col] = currentColCards[col] || [];
             currentColCards[col].push(cards[i]);
-            cardsHtml += '<div class="card" id="card'+ row + '_' + col +'" data-cardvalue="'+ cards[i].type + '_' + cards[i].number +'"style="position:absolute;top:'+ (row * 80) +'px;left:'+ (col * 100) +'px;"><span class="card-number-top">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span><i class="card-icon-'+ cards[i].type +'"></i><span class="card-number-bottom">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span></div>';
+            cardsHtml += '<div class="card" id="card'+ row + '_' + col +'" data-cardvalue="'+ cards[i].type + '_' + cards[i].number +'"style="position:absolute;top:'+ (row * rowHeight) +'px;left:'+ (col * 100) +'px;"><i class="card-icon-'+ cards[i].type +'"></i><span class="card-number-top">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span><span class="card-number-bottom">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span></div>';
         }
 
         var container = document.querySelector('#container');
@@ -199,7 +202,7 @@
                     var rowcol = target.id && target.id.replace('card', '').split('_');
                     var beforerow = rowcol[0];
                     var beforecol = rowcol[1];
-                    target.style.top = 80 * (beforerow) + 'px';
+                    target.style.top = rowHeight * (beforerow) + 'px';
                     target.style.left = 100 * (beforecol) + 'px';
                     target.style.zIndex = beforerow;
                 }
@@ -235,7 +238,7 @@
                             reset(target);
                             return;
                         }
-                        target.style.top = (cRow + 1) * 80 + 'px';
+                        target.style.top = (cRow + 1) * rowHeight + 'px';
                         target.style.left = (currentcol) * 100 + 'px';
 
                         // 为当前列新增
