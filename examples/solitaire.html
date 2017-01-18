@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Document</title>
+    <title>solitaire - 当空接龙</title>
     <style>
         * {
             margin:0;
@@ -14,7 +14,7 @@
         }
         body{
             font-family: 'Segoe UI Light', 'Segoe UI', 'Microsoft Jhenghei', 微软雅黑, sans-serif;
-            background: radial-gradient(#10923A,#084B1F);
+            /*background: radial-gradient(#10923A,#084B1F);*/
         }
         #container {
             height: 100%;
@@ -73,12 +73,52 @@
         .card-icon-3{
             background-image: url('./img/hong.png');
         }
+
+        .head{
+            margin: 20px 0;
+        }
+        .head .block {
+            width: 70px;
+            height: 90px;
+            display: inline-block;
+            border: 1px solid #C0BCBF;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+
+        .block.info{
+            background: rgba(255, 255, 255, .6);
+        }
+
     </style>
 </head>
 <body>
     <a href="https://github.com/joeyguo/paintify"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
 
-    <div id="container"></div>
+    <div id="container">
+        <div class="head">
+            <div class="block">
+            </div>
+            <div class="block">
+            </div>
+            <div class="block">
+            </div>
+            <div class="block">
+            </div>
+
+            <div class="block info">
+            </div>
+
+            <div class="block">
+            </div>
+            <div class="block">
+            </div>
+            <div class="block">
+            </div>
+            <div class="block">
+            </div>
+        </div>
+    </div>
     <script src="../paintify.js"></script>
     <script>
         function shuffle(arr) {
@@ -129,6 +169,7 @@
         }
 
         var rowHeight = 44;
+        var marginTop = 120;
 
         for (var i = 0; i < cards.length -1; i++) {
             var row = Math.floor(i / 8);
@@ -136,11 +177,11 @@
             
             currentColCards[col] = currentColCards[col] || [];
             currentColCards[col].push(cards[i]);
-            cardsHtml += '<div class="card" id="card'+ row + '_' + col +'" data-cardvalue="'+ cards[i].type + '_' + cards[i].number +'"style="position:absolute;z-index:'+ row +';top:'+ (row * rowHeight) +'px;left:'+ (col * 100) +'px;"><i class="card-icon-'+ cards[i].type +'"></i><span class="card-number-top">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span><span class="card-number-bottom">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span></div>';
+            cardsHtml += '<div class="card" id="card'+ row + '_' + col +'" data-cardvalue="'+ cards[i].type + '_' + cards[i].number +'"style="position:absolute;z-index:'+ row +';top:'+ (row * rowHeight + marginTop) +'px;left:'+ (col * 100) +'px;"><i class="card-icon-'+ cards[i].type +'"></i><span class="card-number-top">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span><span class="card-number-bottom">' + (cards[i].number > 10? valueMap[cards[i].number]: cards[i].number) + '</span></div>';
         }
 
         var container = document.querySelector('#container');
-        container.innerHTML = cardsHtml;
+        container.innerHTML += cardsHtml;
 
         function getMeasureData(target) {
             var width = target.offsetWidth,
@@ -151,6 +192,34 @@
         }
 
         var painter = new Paintify(container, { count: 0 });
+
+        var blocks = document.querySelectorAll('.block');
+        painter.block(blocks, {
+            resize: false,
+            move: false,
+            drop: true,
+            onDrop: function(target, dropboxDom) {
+                console.log('onDrop');
+                target.style.top = dropboxDom.style.top;
+                target.style.left = dropboxDom.style.left;
+
+                var rowcol = target.id && target.id.replace('card', '').split('_');
+                var beforerow = rowcol[0]; // 3
+                var beforecol = rowcol[1]; // 1
+
+                // 在原列剔除 删除多个时，进行统一删除下标改变
+                currentColCards[beforecol].splice(beforerow,1);
+            },
+            onDragenter: function(target, dropboxDom) {
+                console.log('onDragenter');
+            },
+            onDragover: function(target, dropboxDom) {
+                console.log('onDragover');
+            },
+            onDragleave: function(target, dropboxDom) {
+                console.log('onDragleave');
+            },
+        });
 
         var cardDom = document.querySelectorAll('.card');
         painter.transformable(cardDom, {
@@ -188,6 +257,7 @@
                 if (isNotSuit) {
                     target.isOver = true;
                 } else {
+                    target.isOver = false;
                     // 拖动时置于最高
                     var z = 666;
                     target.style.zIndex = z;
@@ -201,71 +271,68 @@
             },
             onMove: function (target) {
             },
-            onStop: function (target) {
-                var isAlLReset = false;
-                function reset(target) {
-                    var rowcol = target.id && target.id.replace('card', '').split('_');
-                    var beforerow = rowcol[0];
-                    var beforecol = rowcol[1];
-                    target.style.top = rowHeight * (beforerow) + 'px';
-                    target.style.left = 100 * (beforecol) + 'px';
-                    target.style.zIndex = beforerow;
-                }
+            onStop: function (target, opt) {
+                var isInBox = opt.isInBox;
+                if (isInBox) {
 
-                function change(target) {
-                    var cardvalue = target.dataset.cardvalue && target.dataset.cardvalue.split('_');
-                    var rowcol = target.id && target.id.replace('card', '').split('_');
+                } else {
+                    var isAllReset = false;
+                    function change(target) {
+                        var cardvalue = target.dataset.cardvalue && target.dataset.cardvalue.split('_');
+                        var rowcol = target.id && target.id.replace('card', '').split('_');
 
-                    var type = cardvalue[0];
-                    var value = cardvalue[1];
+                        var type = cardvalue[0];
+                        var value = cardvalue[1];
 
-                    var beforerow = rowcol[0];
-                    var beforecol = rowcol[1];
+                        var beforerow = rowcol[0];
+                        var beforecol = rowcol[1];
 
-                    var measureData = getMeasureData(target);
-                    var left = measureData[0];
+                        var measureData = getMeasureData(target);
+                        var left = measureData[0];
 
-                    var cLeft = (left + 41) % 100;
-                    var currentcol = Math.floor((left + 41) / 100);
-                    var isMoved = false;
-                   
-                    if (cLeft < 81 && beforecol != currentcol) {
-                        console.log('move')
-                        var cCol = currentColCards[currentcol];
-                        var cRow = cCol.length - 1;
-                        var last = cCol[cRow];
+                        var cLeft = (left + 41) % 100;
+                        var currentcol = Math.floor((left + 41) / 100);
+                        var isMoved = false;
+                       
+                        if (cLeft < 81 && beforecol != currentcol) {
+                            var cCol = currentColCards[currentcol];
+                            var cRow = cCol.length - 1;
+                            var last = cCol[cRow];
 
-                        var lastValue = last.number;
-                        var lastType = last.type;
+                            var lastValue = last.number;
+                            var lastType = last.type;
 
-                        if (parseInt(lastValue, 10) - 1 !== parseInt(value, 10) || isAlLReset) {
-                            isAlLReset = true;
-                            reset(target);
-                            return;
+                            if (parseInt(lastValue, 10) - 1 !== parseInt(value, 10) || isAllReset) {
+                                isAllReset = true;
+                                console.log('reset')
+                                target.reset();
+                                return;
+                            }
+                            target.style.top = (cRow + 1) * rowHeight + marginTop + 'px';
+                            target.style.left = (currentcol) * 100 + 'px';
+
+                            // 为当前列新增
+                            currentColCards[currentcol].push({
+                                type: type,
+                                number: value
+                            })
+
+                            target.id = 'card' + (parseInt(cRow, 10) + 1) + '_' + parseInt(currentcol, 10);
+                            target.style.zIndex = (parseInt(cRow, 10) + 1);
+                            // 在原列剔除 删除多个时，进行统一删除下标改变
+                            currentColCards[beforecol].splice(beforerow,(target.combineDom && target.combineDom.length || 0) + 1)
+                        } else {
+                            console.log('revert')
+                            // 原位
+                            target.reset();
                         }
-                        target.style.top = (cRow + 1) * rowHeight + 'px';
-                        target.style.left = (currentcol) * 100 + 'px';
-
-                        // 为当前列新增
-                        currentColCards[currentcol].push({
-                            type: type,
-                            number: value
-                        })
-
-                        target.id = 'card' + (parseInt(cRow, 10) + 1) + '_' + parseInt(currentcol, 10);
-                        target.style.zIndex = (parseInt(cRow, 10) + 1);
-                        // 在原列剔除 删除多个时，进行统一删除下标改变
-                        currentColCards[beforecol].splice(beforerow,(target.combineDom && target.combineDom.length || 0) + 1)
-                    } else {
-                        console.log('revert')
-                        // 原位
-                        reset(target)
+                    }
+                    change(target);
+                    for (var i = 0; i < target.combineDom.length; i++) {
+                        change(target.combineDom[i]);
                     }
                 }
-                change(target);
-                for (var i = 0; i < target.combineDom.length; i++) {
-                    change(target.combineDom[i]);
-                }
+                
                 console.log('stop');
             }
         });
