@@ -16,22 +16,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     var _drawingboard = null,
         distance = 10,
         paintifyblock_id = 0,
-        emptyFunction = function emptyFunction() {},
         dragging = null,
         callbacks = {},
         dropboxs = [];
 
-    function register(paintifyblock_id, opt) {
-        callbacks[paintifyblock_id] = {
-            onStart: opt.onStart || emptyFunction,
-            onMove: opt.onMove || emptyFunction,
-            onStop: opt.onStop || emptyFunction,
-            onDrop: opt.onDrop || emptyFunction,
-            onDragover: opt.onDragover || emptyFunction,
-            onDragleave: opt.onDragleave || emptyFunction,
-            onDragenter: opt.onDragenter || emptyFunction
-        };
-    }
+    var emptyFunction = function emptyFunction() {};
 
     var getStyle = function getStyle(o, key) {
         return document.defaultView.getComputedStyle(o, false)[key];
@@ -45,6 +34,18 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             width: getStyle(target, 'width') && parseInt(getStyle(target, 'width').replace(/px/, ''), 10)
         };
     };
+
+    function register(paintifyblock_id, opt) {
+        callbacks[paintifyblock_id] = {
+            onStart: opt.onStart || emptyFunction,
+            onMove: opt.onMove || emptyFunction,
+            onStop: opt.onStop || emptyFunction,
+            onDrop: opt.onDrop || emptyFunction,
+            onDragover: opt.onDragover || emptyFunction,
+            onDragleave: opt.onDragleave || emptyFunction,
+            onDragenter: opt.onDragenter || emptyFunction
+        };
+    }
 
     function checkInDropbox(target, dropboxs, opt) {
         var currentMD = getMeasure(target),
@@ -87,19 +88,18 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         return rect;
     }
 
-    function paintRectTransformable(rect) {
+    function transformable(rect) {
         rect.onmousemove = function (e) {
             if (dragging) return;
 
-            var rectStyle = rect.style,
-                rectDataset = rect.dataset;
+            var style = rect.style,
+                dataset = rect.dataset;
 
-            var measureData = getMeasure(rect);
-
-            var top = measureData.top,
-                left = measureData.left,
-                width = measureData.width,
-                height = measureData.height;
+            var _getMeasure = getMeasure(rect),
+                top = _getMeasure.top,
+                left = _getMeasure.left,
+                width = _getMeasure.width,
+                height = _getMeasure.height;
 
             var currentX = e.pageX,
                 currentY = e.pageY;
@@ -114,40 +114,40 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
             if (positionLeft > 0 && positionLeft < distance) {
                 if (positionTop < distance) {
-                    rectStyle.cursor = "nwse-resize";
-                    rectDataset.direction = "lt";
+                    dataset.direction = "lt";
+                    style.cursor = "nwse-resize";
                 } else if (positionBottom < distance) {
-                    rectDataset.direction = "lb";
-                    rectStyle.cursor = "nesw-resize";
+                    dataset.direction = "lb";
+                    style.cursor = "nesw-resize";
                 } else {
-                    rectDataset.direction = "l";
-                    rectStyle.cursor = "ew-resize";
+                    dataset.direction = "l";
+                    style.cursor = "ew-resize";
                 }
             } else if (positionRight < distance) {
                 if (positionTop < distance) {
-                    rectDataset.direction = "rt";
-                    rectStyle.cursor = "nesw-resize";
+                    dataset.direction = "rt";
+                    style.cursor = "nesw-resize";
                 } else if (positionBottom < distance) {
-                    rectDataset.direction = "rb";
-                    rectStyle.cursor = "nwse-resize";
+                    dataset.direction = "rb";
+                    style.cursor = "nwse-resize";
                 } else {
-                    rectDataset.direction = "r";
-                    rectStyle.cursor = "ew-resize";
+                    dataset.direction = "r";
+                    style.cursor = "ew-resize";
                 }
             } else if (positionTop > 0 && positionTop < distance) {
-                rectDataset.direction = "t";
-                rectStyle.cursor = "ns-resize";
+                dataset.direction = "t";
+                style.cursor = "ns-resize";
             } else if (positionBottom < distance) {
-                rectDataset.direction = "b";
-                rectStyle.cursor = "ns-resize";
+                dataset.direction = "b";
+                style.cursor = "ns-resize";
             } else {
-                rectDataset.direction = "c";
-                rectStyle.cursor = "move";
+                dataset.direction = "c";
+                style.cursor = "move";
             }
         };
     }
 
-    function paintRectTransformableWithoutResize(rect) {
+    function movable(rect) {
         rect.onmousemove = function (e) {
             if (dragging) {
                 return;
@@ -159,9 +159,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     function contextMenu(drawingboard, onBlockContextMenu, onContextMenu) {
         drawingboard.oncontextmenu = function (e) {
-            var target = e.target;
-            var isPaintifyblock = false;
-            var paintifyblockTarget = target;
+            var target = e.target,
+                isPaintifyblock = false,
+                paintifyblockTarget = target;
 
             while (paintifyblockTarget !== drawingboard) {
                 if (paintifyblockTarget.dataset.paintifyblock) {
@@ -181,13 +181,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     function setBeforeMeasure(target) {
-        var targetStyle = target.style;
+        var style = target.style;
         target.dataset.beforemeasure = JSON.stringify({
-            top: targetStyle.top,
-            left: targetStyle.left,
-            width: targetStyle.width,
-            height: targetStyle.height,
-            zIndex: targetStyle.zIndex
+            top: style.top,
+            left: style.left,
+            width: style.width,
+            height: style.height,
+            zIndex: style.zIndex
         });
 
         target.reset = function () {
@@ -225,6 +225,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         distance = opt.distance ? opt.distance : distance;
 
         _drawingboard = drawingboard;
+
         // fix 拖拽时，鼠标显示禁止拖动的图示，"xx被选中了"
         drawingboard.style.userSelect = "none";
         drawingboard.style.webkitUserSelect = "none";
@@ -283,9 +284,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                     var rect = paintRect(startX, startY);
                     drawingboard.appendChild(rect);
                     if (resize && move) {
-                        paintRectTransformable(rect);
+                        transformable(rect);
                     } else if (move) {
-                        paintRectTransformableWithoutResize(rect);
+                        movable(rect);
                     }
                     if (drop) {}
 
@@ -429,13 +430,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 var distanceLeft = afterLeft - currentLeft;
 
                 modifyMeasure(tp, direction);
-
-                for (var i = 0; i < target.combineDom.length; i++) {
-                    modifyMeasure(target.combineDom[i], direction);
-                }
-
-                // callback
                 callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onMove(tp);
+
+                for (var i = 0, dom = null; i < target.combineDom.length; i++) {
+                    dom = target.combineDom[i];
+                    modifyMeasure(dom, direction);
+                    callbacks[dom.dataset.paintifyblock_id] && callbacks[dom.dataset.paintifyblock_id].onMove(dom);
+                }
             }
         };
 
@@ -444,6 +445,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             if (target === null) return;
 
             var isInBox = false;
+
             if (dropboxs) {
                 checkInDropbox(target, dropboxs, {
                     overCallback: function overCallback(target, dropbox) {
@@ -492,9 +494,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 block.dataset.paintifyblock = true;
 
                 if (resize && move) {
-                    paintRectTransformable(block);
+                    transformable(block);
                 } else if (move) {
-                    paintRectTransformableWithoutResize(block);
+                    movable(block);
                 }
                 if (drop) {}
 
@@ -531,9 +533,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                             top: item.top,
                             width: item.width,
                             height: item.height
-                        },
-                        onDrop: opt.onDrop || emptyFunction,
-                        onDragover: opt.onDragover || emptyFunction
+                        }
                     });
                 }
                 // console.warn("Note:", d, "position(css) is changed into absolute");
