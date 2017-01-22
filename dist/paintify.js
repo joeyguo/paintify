@@ -240,7 +240,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         }
 
         var downCb = function downCb(e) {
-            console.log('down');
+            // console.log('down');
             startX = e.pageX;
             startY = e.pageY;
             prevX = e.pageX;
@@ -257,14 +257,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 target = target.parentNode;
             }
 
-            target.combineDom = [];
-            target.combine = function (dom) {
-                target.combineDom.push(dom);
-                setBeforeMeasure(dom);
-            };
-            target.clearCombine = function (dom) {
-                target.combineDom = [];
-            };
             // 如果鼠标在 rect 上被按下
             if (isPaintifyblock) {
                 dragging = target; // 拖动对象
@@ -302,7 +294,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         };
 
         var moveCb = function moveCb(e) {
-            console.log('move');
+            // console.log('move');
             target && target.isOver === true && (target = null);
             if (target === null) return;
             if (!dragging) {
@@ -396,9 +388,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                     }
                 };
 
-                var tp = target;
-                var tph = tp.offsetHeight;
-                var tpw = tp.offsetWidth;
+                var tph = target.offsetHeight;
+                var tpw = target.offsetWidth;
 
                 var drawingboardHeight = drawingboard.offsetHeight;
                 var drawingboardWidth = drawingboard.offsetWidth;
@@ -409,7 +400,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 var isOverY = tph + drawingboardY <= drawingboardHeight && drawingboardY >= 0 ? true : false;
                 var isOverX = tpw + drawingboardX <= drawingboardWidth && drawingboardX >= 0 ? true : false;
 
-                var measureData = getMeasure(tp);
+                var measureData = getMeasure(target);
 
                 var afterWidthLeft = measureData.width - (e.pageX - prevX);
                 var afterWidthRight = measureData.width + (e.pageX - prevX);
@@ -429,11 +420,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 var distanceTop = afterTop - currentTop;
                 var distanceLeft = afterLeft - currentLeft;
 
-                modifyMeasure(tp, direction);
-                callbacks[tp.dataset.paintifyblock_id] && callbacks[tp.dataset.paintifyblock_id].onMove(tp);
+                modifyMeasure(target, direction);
+                callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onMove(target);
 
-                for (var i = 0, dom = null; i < target.combineDom.length; i++) {
-                    dom = target.combineDom[i];
+                for (var i = 0, dom = null, combinedTargets = getCombinedTargets(target); i < combinedTargets.length; i++) {
+                    dom = combinedTargets[i];
                     modifyMeasure(dom, direction);
                     callbacks[dom.dataset.paintifyblock_id] && callbacks[dom.dataset.paintifyblock_id].onMove(dom);
                 }
@@ -441,7 +432,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         };
 
         var leaveCb = function leaveCb() {
-            console.log('leave');
+            // console.log('leave');
             if (target === null) return;
 
             var isInBox = false;
@@ -460,7 +451,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 isInBox: isInBox
             });
             setBeforeMeasure(target);
-            target.clearCombine && target.clearCombine(); // 清除绑定
+            for (var i = 0, dom = null, combinedTargets = getCombinedTargets(target); i < combinedTargets.length; i++) {
+                dom = combinedTargets[i];
+                setBeforeMeasure(dom);
+            }
+            clearCombinedTargets(target); // 清除绑定
             target = null;
             dragging = null; // 禁止拖动
         };
@@ -470,6 +465,24 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         drawingboard.onmouseleave = leaveCb;
         drawingboard.onmouseup = leaveCb;
     };
+
+    var database = {
+        id: {
+            combine: []
+        }
+    };
+
+    function getCombinedTargets(target) {
+        var targetId = target.dataset.paintifyblock_id;
+        return database[targetId] && database[targetId]["combine"] || [];
+    }
+
+    function clearCombinedTargets(target) {
+        var targetId = target.dataset.paintifyblock_id;
+        if (database[targetId] && database[targetId]["combine"]) {
+            delete database[targetId]["combine"];
+        }
+    }
 
     Paintify.prototype = {
         paint: function paint(blocks) {
@@ -538,6 +551,18 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 }
                 // console.warn("Note:", d, "position(css) is changed into absolute");
             });
+        },
+        combine: function combine(target, combinedTarget) {
+            var targetId = target.dataset.paintifyblock_id;
+            database[targetId] = database[targetId] ? database[targetId] : {};
+            database[targetId]["combine"] = database[targetId]["combine"] ? database[targetId]["combine"] : [];
+            database[targetId]["combine"].push(combinedTarget);
+        },
+        getCombined: function getCombined(target) {
+            return getCombinedTargets(target);
+        },
+        uncombine: function uncombine(target) {
+            clearCombinedTargets(target);
         }
     };
 
