@@ -266,7 +266,8 @@
                     for (var i = 0, dom; i < combineDomTmp.length; i++) {
                         dom = combineDomTmp[i];
                         // 将其他dom进行绑定，做相同的操作
-                        target.combine(dom);
+                        painter.combine(target, dom);
+                        // target.combine(dom);
                         dom.style.zIndex = ++z;
                     }
                 }
@@ -322,7 +323,7 @@
                             target.id = 'card' + (parseInt(cRow, 10) + 1) + '_' + parseInt(currentcol, 10);
                             target.style.zIndex = (parseInt(cRow, 10) + 1);
                             // 在原列剔除 删除多个时，进行统一删除下标改变
-                            currentColCards[beforecol] && currentColCards[beforecol].splice(beforerow,(target.combineDom && target.combineDom.length || 0) + 1)
+                            currentColCards[beforecol] && currentColCards[beforecol].splice(beforerow,(painter.getCombined(target).length) + 1)
                         } else {
                             console.log('revert')
                             // 原位
@@ -330,8 +331,8 @@
                         }
                     }
                     change(target);
-                    for (var i = 0; i < target.combineDom.length; i++) {
-                        change(target.combineDom[i]);
+                    for (var i = 0, combinedTargets = painter.getCombined(target); i < combinedTargets.length; i++) {
+                        change(combinedTargets[i]);
                     }
                 }
                 
