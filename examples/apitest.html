@@ -60,22 +60,22 @@
         
         // add multiple blocks
         painter.paint([
-                            document.querySelector('#block1'),
-                            document.querySelector('#block2')
-                        ], {
-                            resize: true,
-                            move: true,
-                            onStart: function(target) {
-                                console.log(target);
-                            },
-                            onMove: function (target) {
-                                console.log(getMeasureData(target));
-                            },
-                            onStop: function (target) {
-                                console.log(target);
-                                console.log('stop');
-                            }
-                        });
+                        document.querySelector('#block1'),
+                        document.querySelector('#block2')
+                    ], {
+                        resize: true,
+                        move: true,
+                        onStart: function(target) {
+                            console.log(target);
+                        },
+                        onMove: function (target) {
+                            console.log(getMeasureData(target));
+                        },
+                        onStop: function (target) {
+                            console.log(target);
+                            console.log('stop');
+                        }
+                    });
     </script>
 </body>
 </html>

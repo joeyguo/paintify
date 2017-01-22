@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, minimal-ui" />
+    <meta content="yes"name="apple-mobile-web-app-capable"/>
+    <meta content="black"name="apple-mobile-web-app-status-bar-style"/>
+    <meta name="format-detection"content="telephone=no, email=no" />
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <meta name="author" content="joeyguo" />
+
     <title>solitaire - 当空接龙</title>
     <style>
         * {
@@ -252,7 +261,7 @@
                         value = cardvalue[1];
                         combineDomTmp.push(combineDom);
                     } else {
-                        isNotSuit = true;
+                        // isNotSuit = true;
                     }
                 }
 
@@ -306,9 +315,7 @@
 
                             if (parseInt(lastValue, 10) - 1 !== parseInt(value, 10) || isAllReset) {
                                 isAllReset = true;
-                                console.log('reset')
-                                console.log(target)
-                                target.reset();
+                                painter.reset(target);
                                 return;
                             }
                             target.style.top = (cRow + 1) * rowHeight + marginTop + 'px';
@@ -327,7 +334,7 @@
                         } else {
                             console.log('revert')
                             // 原位
-                            target.reset();
+                            painter.reset(target);
                         }
                     }
                     change(target);
