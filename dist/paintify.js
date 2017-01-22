@@ -15,10 +15,17 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     var _drawingboard = null,
         distance = 10,
-        paintifyblock_id = 0,
+        paintid = 0,
         dragging = null,
         callbacks = {},
         dropboxs = [];
+
+    var database = {
+        id: {
+            combine: [],
+            measure: [] // 现在只保留最后一个
+        }
+    };
 
     var emptyFunction = function emptyFunction() {};
 
@@ -35,8 +42,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         };
     };
 
-    function register(paintifyblock_id, opt) {
-        callbacks[paintifyblock_id] = {
+    function register(paintid, opt) {
+        callbacks[paintid] = {
             onStart: opt.onStart || emptyFunction,
             onMove: opt.onMove || emptyFunction,
             onStop: opt.onStop || emptyFunction,
@@ -81,7 +88,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         var rect = document.createElement("div");
         rect.className = "paint-rect";
         rect.dataset._painting = true;
-        rect.dataset.paintifyblock = true;
         rect.style.left = startX + 'px';
         rect.style.top = startY + 'px';
         rect.style.cssText += "background: #99E9FC;width: 0px;height: 0px;position: absolute;opacity: 0.5;cursor: move;";
@@ -164,7 +170,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 paintifyblockTarget = target;
 
             while (paintifyblockTarget !== drawingboard) {
-                if (paintifyblockTarget.dataset.paintifyblock) {
+                if (paintifyblockTarget.dataset.paintid) {
                     isPaintifyblock = true;
                     break;
                 }
@@ -181,23 +187,38 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     function setBeforeMeasure(target) {
+        var targetId = target.dataset.paintid;
         var style = target.style;
-        target.dataset.beforemeasure = JSON.stringify({
+        database[targetId] = database[targetId] ? database[targetId] : {};
+        // database[targetId]["measure"] = database[targetId]["measure"]? database[targetId]["measure"]: [];
+        database[targetId]["measure"] = [];
+        database[targetId]["measure"].push({
             top: style.top,
             left: style.left,
             width: style.width,
             height: style.height,
             zIndex: style.zIndex
         });
+    }
 
-        target.reset = function () {
-            var beforemeasure = this.dataset.beforemeasure && JSON.parse(this.dataset.beforemeasure);
-            this.style.top = beforemeasure.top;
-            this.style.left = beforemeasure.left;
-            this.style.width = beforemeasure.width;
-            this.style.height = beforemeasure.height;
-            this.style.zIndex = beforemeasure.zIndex;
-        };
+    function getBeforeMeasure(target) {
+        var targetId = target.dataset.paintid;
+
+        database[targetId] = database[targetId] ? database[targetId] : {};
+        database[targetId]["measure"] = database[targetId]["measure"] ? database[targetId]["measure"] : [];
+        return database[targetId]["measure"].pop();
+    }
+
+    function getCombinedTargets(target) {
+        var targetId = target.dataset.paintid;
+        return database[targetId] && database[targetId]["combine"] || [];
+    }
+
+    function clearCombinedTargets(target) {
+        var targetId = target.dataset.paintid;
+        if (database[targetId] && database[targetId]["combine"]) {
+            delete database[targetId]["combine"];
+        }
     }
 
     var Paintify = function Paintify(drawingboard) {
@@ -240,7 +261,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         }
 
         var downCb = function downCb(e) {
-            // console.log('down');
+            console.log('down');
             startX = e.pageX;
             startY = e.pageY;
             prevX = e.pageX;
@@ -250,7 +271,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             var isPaintifyblock = false;
 
             while (target !== drawingboard) {
-                if (target.dataset.paintifyblock) {
+                if (target.dataset.paintid) {
                     isPaintifyblock = true;
                     break;
                 }
@@ -268,7 +289,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
                 setBeforeMeasure(target);
 
-                callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStart(target);
+                callbacks[target.dataset.paintid] && callbacks[target.dataset.paintid].onStart(target);
             } else {
                 var _paintingExisted = drawingboard.querySelector("[data-_painting]") || [];
                 if (_paintingExisted.length < count || count < 0) {
@@ -282,11 +303,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                     }
                     if (drop) {}
 
-                    rect.dataset.paintifyblock_id = ++paintifyblock_id;
-                    register(paintifyblock_id, opt);
+                    rect.dataset.paintid = ++paintid;
+                    register(paintid, opt);
 
                     target = rect;
-                    callbacks[paintifyblock_id] && callbacks[paintifyblock_id].onStart(rect);
+                    callbacks[paintid] && callbacks[paintid].onStart(rect);
                 } else {
                     target = null;
                 }
@@ -294,14 +315,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         };
 
         var moveCb = function moveCb(e) {
-            // console.log('move');
+            console.log('move');
             target && target.isOver === true && (target = null);
             if (target === null) return;
             if (!dragging) {
                 target.style.width = e.pageX - startX + 'px';
                 target.style.height = e.pageY - startY + 'px';
 
-                callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onMove(target);
+                callbacks[target.dataset.paintid] && callbacks[target.dataset.paintid].onMove(target);
                 return;
             } else {
                 var modifyMeasure = function modifyMeasure(tp, direction) {
@@ -376,13 +397,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                     if (dropboxs) {
                         checkInDropbox(tp, dropboxs, {
                             overCallback: function overCallback(target, dropbox) {
-                                callbacks[dropbox.paintifyblock_id].onDragover(target, dropbox.dom);
+                                callbacks[dropbox.paintid].onDragover(target, dropbox.dom);
                             },
                             enterCallback: function enterCallback(target, dropbox) {
-                                callbacks[dropbox.paintifyblock_id].onDragenter(target, dropbox.dom);
+                                callbacks[dropbox.paintid].onDragenter(target, dropbox.dom);
                             },
                             leaveCallback: function leaveCallback(target, dropbox) {
-                                callbacks[dropbox.paintifyblock_id].onDragleave(target, dropbox.dom);
+                                callbacks[dropbox.paintid].onDragleave(target, dropbox.dom);
                             }
                         });
                     }
@@ -421,12 +442,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 var distanceLeft = afterLeft - currentLeft;
 
                 modifyMeasure(target, direction);
-                callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onMove(target);
+                callbacks[target.dataset.paintid] && callbacks[target.dataset.paintid].onMove(target);
 
                 for (var i = 0, dom = null, combinedTargets = getCombinedTargets(target); i < combinedTargets.length; i++) {
                     dom = combinedTargets[i];
                     modifyMeasure(dom, direction);
-                    callbacks[dom.dataset.paintifyblock_id] && callbacks[dom.dataset.paintifyblock_id].onMove(dom);
+                    callbacks[dom.dataset.paintid] && callbacks[dom.dataset.paintid].onMove(dom);
                 }
             }
         };
@@ -442,14 +463,15 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                     overCallback: function overCallback(target, dropbox) {
                         isInBox = true;
                         console.log('isInBox', isInBox);
-                        callbacks[dropbox.paintifyblock_id].onDrop(target, dropbox.dom);
+                        callbacks[dropbox.paintid].onDrop(target, dropbox.dom);
                     }
                 });
             }
 
-            callbacks[target.dataset.paintifyblock_id] && callbacks[target.dataset.paintifyblock_id].onStop(target, {
+            callbacks[target.dataset.paintid] && callbacks[target.dataset.paintid].onStop(target, {
                 isInBox: isInBox
             });
+
             setBeforeMeasure(target);
             for (var i = 0, dom = null, combinedTargets = getCombinedTargets(target); i < combinedTargets.length; i++) {
                 dom = combinedTargets[i];
@@ -464,25 +486,15 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         drawingboard.onmousemove = moveCb;
         drawingboard.onmouseleave = leaveCb;
         drawingboard.onmouseup = leaveCb;
+
+        // drawingboard.ontouchstart = downCb;
+        // drawingboard.ontouchmove = moveCb;
+        // drawingboard.ontouchEnd = leaveCb;
+
+        // drawingboard.addEventListener("touchstart", downCb, false);
+        // drawingboard.addEventListener("touchend", moveCb, false);
+        // drawingboard.addEventListener("touchmove", leaveCb, false);
     };
-
-    var database = {
-        id: {
-            combine: []
-        }
-    };
-
-    function getCombinedTargets(target) {
-        var targetId = target.dataset.paintifyblock_id;
-        return database[targetId] && database[targetId]["combine"] || [];
-    }
-
-    function clearCombinedTargets(target) {
-        var targetId = target.dataset.paintifyblock_id;
-        if (database[targetId] && database[targetId]["combine"]) {
-            delete database[targetId]["combine"];
-        }
-    }
 
     Paintify.prototype = {
         paint: function paint(blocks) {
@@ -501,10 +513,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 block = blocks[i];
                 // dom 不存在时
                 if (!block) return;
-                block.dataset.paintifyblock_id = ++paintifyblock_id;
-                register(paintifyblock_id, opt);
-
-                block.dataset.paintifyblock = true;
+                block.dataset.paintid = ++paintid;
+                register(paintid, opt);
 
                 if (resize && move) {
                     transformable(block);
@@ -515,7 +525,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
                 if (window.getComputedStyle(block).position !== 'absolute') {
                     arr.push({
-                        paintifyblock_id: paintifyblock_id,
+                        paintid: paintid,
                         dom: block,
                         left: block.offsetLeft,
                         top: block.offsetTop,
@@ -539,7 +549,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
                 if (drop) {
                     dropboxs.push({
-                        paintifyblock_id: item.paintifyblock_id,
+                        paintid: item.paintid,
                         dom: d,
                         measureData: {
                             left: item.left,
@@ -552,8 +562,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 // console.warn("Note:", d, "position(css) is changed into absolute");
             });
         },
+        reset: function reset(target) {
+            var measure = getBeforeMeasure(target);
+            target.style.top = measure.top;
+            target.style.left = measure.left;
+            target.style.width = measure.width;
+            target.style.height = measure.height;
+            target.style.zIndex = measure.zIndex;
+        },
         combine: function combine(target, combinedTarget) {
-            var targetId = target.dataset.paintifyblock_id;
+            var targetId = target.dataset.paintid;
             database[targetId] = database[targetId] ? database[targetId] : {};
             database[targetId]["combine"] = database[targetId]["combine"] ? database[targetId]["combine"] : [];
             database[targetId]["combine"].push(combinedTarget);
